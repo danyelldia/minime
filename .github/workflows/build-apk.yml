@@ -23,6 +23,49 @@ jobs:
           cp -r tmp_scaffold/android ./android
           rm -rf tmp_scaffold
 
+      - name: Activeaza core library desugaring (necesar pentru flutter_local_notifications)
+        run: |
+          python3 -c '
+          import os
+          groovy = "android/app/build.gradle"
+          kts = "android/app/build.gradle.kts"
+          if os.path.exists(kts):
+              path = kts
+              addition = """
+
+          android {
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_1_8
+                  targetCompatibility = JavaVersion.VERSION_1_8
+                  isCoreLibraryDesugaringEnabled = true
+              }
+          }
+
+          dependencies {
+              coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+          }
+          """
+          else:
+              path = groovy
+              addition = """
+
+          android {
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_1_8
+                  targetCompatibility JavaVersion.VERSION_1_8
+                  coreLibraryDesugaringEnabled true
+              }
+          }
+
+          dependencies {
+              coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.0.4"
+          }
+          """
+          with open(path, "a") as f:
+              f.write(addition)
+          print("patched:", path)
+          '
+
       - name: Instaleaza dependintele
         run: flutter pub get
 
