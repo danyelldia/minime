@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'db/database_helper.dart';
+import 'providers/bill_provider.dart';
 import 'providers/category_provider.dart';
 import 'providers/note_task_provider.dart';
 import 'providers/priority_tag_provider.dart';
+import 'screens/bills_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/notes_screen.dart';
 import 'theme/app_theme.dart';
@@ -26,6 +28,7 @@ class MiniMeApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CategoryProvider()..load()),
         ChangeNotifierProvider(create: (_) => PriorityTagProvider()..load()),
         ChangeNotifierProvider(create: (_) => NoteTaskProvider()..load()),
+        ChangeNotifierProvider(create: (_) => BillProvider()..load()),
       ],
       child: MaterialApp(
         title: 'MiniMe',
@@ -39,9 +42,9 @@ class MiniMeApp extends StatelessWidget {
   }
 }
 
-/// Schela principala cu navigare intre cele 4 sectiuni. Dashboard si
-/// Notes & To-Do sunt functionale (Faza 2); Bills si Today raman placeholder
-/// pana la Faza 3 (tracker financiar) si Faza 4 (motor de prioritizare).
+/// Schela principala cu navigare intre cele 4 sectiuni. Dashboard, Notes & To-Do
+/// si Bills sunt functionale (Faza 2 + 3); Today ramane placeholder pana la
+/// Faza 4 (motor de prioritizare zilnica).
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -55,7 +58,7 @@ class _HomeShellState extends State<HomeShell> {
   final _tabs = const [
     DashboardScreen(),
     NotesScreen(),
-    _PlaceholderTab(title: 'Bills', icon: Icons.receipt_long_rounded),
+    BillsScreen(),
     _PlaceholderTab(title: 'Today', icon: Icons.today_rounded),
   ];
 

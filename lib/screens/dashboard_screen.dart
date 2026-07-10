@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/note_task.dart';
+import '../providers/bill_provider.dart';
 import '../providers/note_task_provider.dart';
 import '../providers/priority_tag_provider.dart';
 import '../widgets/note_card.dart';
@@ -48,6 +49,7 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final taskProvider = context.watch<NoteTaskProvider>();
     final tagProvider = context.watch<PriorityTagProvider>();
+    final billProvider = context.watch<BillProvider>();
     final notes = taskProvider.recentNotes.take(5).toList();
     final todos = taskProvider.pendingTodos;
 
@@ -82,9 +84,57 @@ class DashboardScreen extends StatelessWidget {
                 )),
           const SizedBox(height: 24),
           const _SectionHeader(title: 'Bills / Income / Wanted', icon: Icons.receipt_long_rounded),
-          const _EmptyHint(text: 'Vine in urmatoarea faza.'),
+          const SizedBox(height: 8),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _MoneyRow(
+                    label: 'Facturi neplatite',
+                    amount: billProvider.totalUnpaidBills,
+                    color: Colors.red,
+                  ),
+                  const SizedBox(height: 8),
+                  _MoneyRow(
+                    label: 'Venituri asteptate',
+                    amount: billProvider.totalExpectedIncome,
+                    color: Colors.green,
+                  ),
+                  const SizedBox(height: 8),
+                  _MoneyRow(
+                    label: 'Cost lucruri dorite',
+                    amount: billProvider.totalWantedCost,
+                    color: Colors.blueGrey,
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _MoneyRow extends StatelessWidget {
+  final String label;
+  final double amount;
+  final Color color;
+
+  const _MoneyRow({required this.label, required this.amount, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label),
+        Text(
+          '${amount.toStringAsFixed(2)} lei',
+          style: TextStyle(fontWeight: FontWeight.bold, color: color),
+        ),
+      ],
     );
   }
 }
