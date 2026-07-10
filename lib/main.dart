@@ -9,6 +9,7 @@ import 'providers/priority_tag_provider.dart';
 import 'screens/bills_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/notes_screen.dart';
+import 'screens/today_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
@@ -42,9 +43,9 @@ class MiniMeApp extends StatelessWidget {
   }
 }
 
-/// Schela principala cu navigare intre cele 4 sectiuni. Dashboard, Notes & To-Do
-/// si Bills sunt functionale (Faza 2 + 3); Today ramane placeholder pana la
-/// Faza 4 (motor de prioritizare zilnica).
+/// Schela principala cu navigare intre cele 4 sectiuni. Toate sunt acum
+/// functionale: Dashboard (Faza 2), Notes & To-Do (Faza 2), Bills (Faza 3),
+/// Today (Faza 4 - motor de prioritizare zilnica).
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -59,7 +60,7 @@ class _HomeShellState extends State<HomeShell> {
     DashboardScreen(),
     NotesScreen(),
     BillsScreen(),
-    _PlaceholderTab(title: 'Today', icon: Icons.today_rounded),
+    TodayScreen(),
   ];
 
   @override
@@ -75,30 +76,6 @@ class _HomeShellState extends State<HomeShell> {
           NavigationDestination(icon: Icon(Icons.receipt_long_rounded), label: 'Bills'),
           NavigationDestination(icon: Icon(Icons.today_rounded), label: 'Today'),
         ],
-      ),
-    );
-  }
-}
-
-class _PlaceholderTab extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  const _PlaceholderTab({required this.title, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 64, color: Theme.of(context).colorScheme.primary),
-            const SizedBox(height: 16),
-            Text(title, style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 8),
-            const Text('Vine in urmatoarea faza'),
-          ],
-        ),
       ),
     );
   }
