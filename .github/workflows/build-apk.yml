@@ -69,7 +69,7 @@ jobs:
         run: flutter pub get
 
       - name: Compileaza APK (release)
-        run: flutter build apk --release
+        run: flutter build apk --release --no-tree-shake-icons
 
       - name: Incarca APK ca artifact
         uses: actions/upload-artifact@v4
