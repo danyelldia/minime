@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'db/database_helper.dart';
+import 'providers/category_provider.dart';
+import 'providers/note_task_provider.dart';
+import 'providers/priority_tag_provider.dart';
+import 'screens/dashboard_screen.dart';
+import 'screens/notes_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
@@ -15,21 +21,27 @@ class MiniMeApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'MiniMe',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
-      home: const HomeShell(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => CategoryProvider()..load()),
+        ChangeNotifierProvider(create: (_) => PriorityTagProvider()..load()),
+        ChangeNotifierProvider(create: (_) => NoteTaskProvider()..load()),
+      ],
+      child: MaterialApp(
+        title: 'MiniMe',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: ThemeMode.system,
+        home: const HomeShell(),
+      ),
     );
   }
 }
 
-/// Schela principala cu navigare intre cele 4 sectiuni.
-/// Continutul real (Dashboard, Notes/To-Do, Bills, Today) se adauga
-/// in fazele urmatoare - acum e doar scheletul care confirma ca
-/// proiectul si modelul de date se compileaza corect.
+/// Schela principala cu navigare intre cele 4 sectiuni. Dashboard si
+/// Notes & To-Do sunt functionale (Faza 2); Bills si Today raman placeholder
+/// pana la Faza 3 (tracker financiar) si Faza 4 (motor de prioritizare).
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -41,8 +53,8 @@ class _HomeShellState extends State<HomeShell> {
   int _index = 0;
 
   final _tabs = const [
-    _PlaceholderTab(title: 'Dashboard', icon: Icons.dashboard_rounded),
-    _PlaceholderTab(title: 'Notes & To-Do', icon: Icons.checklist_rounded),
+    DashboardScreen(),
+    NotesScreen(),
     _PlaceholderTab(title: 'Bills', icon: Icons.receipt_long_rounded),
     _PlaceholderTab(title: 'Today', icon: Icons.today_rounded),
   ];
