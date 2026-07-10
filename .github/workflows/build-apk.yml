@@ -1,0 +1,45 @@
+name: Build MiniMe APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout cod
+        uses: actions/checkout@v4
+
+      - name: Instaleaza Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Genereaza scheletul Android (o singura data, nu tinem android/ in git)
+        run: |
+          flutter create --platforms=android --org com.danyell.minime --project-name minime tmp_scaffold
+          cp -r tmp_scaffold/android ./android
+          rm -rf tmp_scaffold
+
+      - name: Instaleaza dependintele
+        run: flutter pub get
+
+      - name: Compileaza APK (release)
+        run: flutter build apk --release
+
+      - name: Incarca APK ca artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: minime-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Creeaza un Release cu APK-ul atasat
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: MiniMe build ${{ github.run_number }}
+          files: build/app/outputs/flutter-apk/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
