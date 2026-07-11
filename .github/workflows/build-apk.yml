@@ -140,9 +140,10 @@ jobs:
           with open(os.path.join(pkg_dir, "TodayWidgetProvider.kt"), "w") as f:
               f.write(rendered)
 
-          # 2b) render the native TTS-alarm receiver + scheduler (used for
-          #     spoken reminders that work even when the app is killed).
-          for name in ["TtsAlarmScheduler", "TtsAlarmReceiver"]:
+          # 2b) render the native TTS-alarm receiver + scheduler + persistent
+          #     store + boot receiver (used for spoken reminders that work
+          #     even when the app is killed, and that survive a reboot).
+          for name in ["TtsAlarmScheduler", "TtsAlarmReceiver", "TtsAlarmStore", "TtsAlarmBootReceiver"]:
               template = open(f"native/tts_alarm/{name}.kt.template").read()
               rendered = template.replace("__PACKAGE__", pkg_name)
               with open(os.path.join(pkg_dir, f"{name}.kt"), "w") as f:
@@ -177,8 +178,8 @@ jobs:
                   "                \"cancelTtsAlarm\" -> {\n"
                   "                    val id = (call.argument<Any>(\"id\") as? Number)?.toInt() ?: 0\n"
                   "                    TtsAlarmScheduler.cancel(applicationContext, id)\n"
+                  "                    result.success(null)\n"
                   "                }\n"
-                  "                else -> result.notImplemented()\n"
                   "            }\n"
                   "        }\n"
                   "    }\n"
@@ -208,6 +209,7 @@ jobs:
               "    <uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\" />\n"
               "    <uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\" />\n"
               "    <uses-permission android:name=\"android.permission.SCHEDULE_EXACT_ALARM\" />\n"
+              "    <uses-permission android:name=\"android.permission.RECEIVE_BOOT_COMPLETED\" />\n"
           )
           if "ACCESS_FINE_LOCATION" not in manifest:
               manifest = manifest.replace(
@@ -234,6 +236,18 @@ jobs:
           )
           if "TtsAlarmReceiver" not in manifest:
               manifest = manifest.replace("</application>", tts_receiver_block + "    </application>")
+
+          tts_boot_receiver_block = (
+              "        <receiver android:name=\"" + pkg_name + ".TtsAlarmBootReceiver\" android:exported=\"true\">\n"
+              "            <intent-filter>\n"
+              "                <action android:name=\"android.intent.action.BOOT_COMPLETED\" />\n"
+              "                <action android:name=\"android.intent.action.QUICKBOOT_POWERON\" />\n"
+              "                <action android:name=\"android.intent.action.MY_PACKAGE_REPLACED\" />\n"
+              "            </intent-filter>\n"
+              "        </receiver>\n"
+          )
+          if "TtsAlarmBootReceiver" not in manifest:
+              manifest = manifest.replace("</application>", tts_boot_receiver_block + "    </application>")
 
           with open(manifest_path, "w") as f:
               f.write(manifest)
