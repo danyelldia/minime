@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../models/note_task.dart';
 import '../models/priority_tag.dart';
-import '../services/tts_service.dart';
 
 class NoteTaskCard extends StatelessWidget {
   final NoteTask task;
@@ -135,7 +134,7 @@ class NoteTaskCard extends StatelessWidget {
                                     ),
                                     visualDensity: VisualDensity.compact,
                                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  ),
+                                ),
                                 ...task.tags.map((t) => Chip(
                                       label: Text(t, style: const TextStyle(fontSize: 11)),
                                       visualDensity: VisualDensity.compact,
@@ -145,16 +144,6 @@ class NoteTaskCard extends StatelessWidget {
                             ),
                           ],
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.volume_up_rounded, size: 20),
-                        tooltip: 'Read aloud',
-                        onPressed: () {
-                          final text = task.description != null && task.description!.isNotEmpty
-                              ? '${task.title}. ${task.description}'
-                              : task.title;
-                          TtsService.instance.speak(text);
-                        },
                       ),
                     ],
                   ),
