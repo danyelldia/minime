@@ -121,6 +121,7 @@ jobs:
           python3 -c '
           import glob
           import os
+          import re
           import shutil
 
           # 1) find the generated MainActivity.kt to discover the real
@@ -139,20 +140,74 @@ jobs:
           with open(os.path.join(pkg_dir, "TodayWidgetProvider.kt"), "w") as f:
               f.write(rendered)
 
+          # 2b) render the native TTS-alarm receiver + scheduler (used for
+          #     spoken reminders that work even when the app is killed).
+          for name in ["TtsAlarmScheduler", "TtsAlarmReceiver"]:
+              template = open(f"native/tts_alarm/{name}.kt.template").read()
+              rendered = template.replace("__PACKAGE__", pkg_name)
+              with open(os.path.join(pkg_dir, f"{name}.kt"), "w") as f:
+                  f.write(rendered)
+
+          # 2c) patch MainActivity.kt to expose a MethodChannel that Dart
+          #     uses to schedule/cancel the native TTS alarms.
+          main_activity_content = open(main_activity).read()
+          if "TTS_ALARM_CHANNEL" not in main_activity_content:
+              main_activity_content = re.sub(
+                  r"import io\.flutter\.embedding\.android\.FlutterActivity",
+                  "import io.flutter.embedding.android.FlutterActivity\n"
+                  "import io.flutter.embedding.engine.FlutterEngine\n"
+                  "import io.flutter.plugin.common.MethodChannel",
+                  main_activity_content,
+              )
+              new_class_body = (
+                  "class MainActivity: FlutterActivity() {\n"
+                  "    private val TTS_ALARM_CHANNEL = \"com.danyell.minime/tts_alarm\"\n"
+                  "\n"
+                  "    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {\n"
+                  "        super.configureFlutterEngine(flutterEngine)\n"
+                  "        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, TTS_ALARM_CHANNEL).setMethodCallHandler { call, result ->\n"
+                  "            when (call.method) {\n"
+                  "                \"scheduleTtsAlarm\" -> {\n"
+                  "                    val id = (call.argument<Any>(\"id\") as? Number)?.toInt() ?: 0\n"
+                  "                    val title = call.argument<String>(\"title\") ?: \"\"\n"
+                  "                    val triggerAtMillis = (call.argument<Any>(\"triggerAtMillis\") as? Number)?.toLong() ?: 0L\n"
+                  "                    TtsAlarmScheduler.schedule(applicationContext, id, title, triggerAtMillis)\n"
+                  "                    result.success(null)\n"
+                  "                }\n"
+                  "                \"cancelTtsAlarm\" -> {\n"
+                  "                    val id = (call.argument<Any>(\"id\") as? Number)?.toInt() ?: 0\n"
+                  "                    TtsAlarmScheduler.cancel(applicationContext, id)\n"
+                  "                }\n"
+                  "                else -> result.notImplemented()\n"
+                  "            }\n"
+                  "        }\n"
+                  "    }\n"
+                  "}\n"
+              )
+              main_activity_content = re.sub(
+                  r"class MainActivity\s*:\s*FlutterActivity\(\)\s*\n?",
+                  new_class_body,
+                  main_activity_content,
+              )
+              with open(main_activity, "w") as f:
+                  f.write(main_activity_content)
+              print("MainActivity.kt patched with tts_alarm channel")
+
           # 3) copy the widget layout + info XML into the res folders
           os.makedirs("android/app/src/main/res/layout", exist_ok=True)
           os.makedirs("android/app/src/main/res/xml", exist_ok=True)
           shutil.copy("native/widget/today_widget_layout.xml", "android/app/src/main/res/layout/today_widget_layout.xml")
           shutil.copy("native/widget/today_widget_info.xml", "android/app/src/main/res/xml/today_widget_info.xml")
 
-          # 4) patch AndroidManifest.xml: add location permissions + the
-          #    widget receiver declaration.
+          # 4) patch AndroidManifest.xml: add location + exact-alarm
+          #    permissions, and the widget + TTS-alarm receiver declarations.
           manifest_path = "android/app/src/main/AndroidManifest.xml"
           manifest = open(manifest_path).read()
 
           permissions = (
               "    <uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\" />\n"
               "    <uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\" />\n"
+              "    <uses-permission android:name=\"android.permission.SCHEDULE_EXACT_ALARM\" />\n"
           )
           if "ACCESS_FINE_LOCATION" not in manifest:
               manifest = manifest.replace(
@@ -173,6 +228,12 @@ jobs:
           )
           if "TodayWidgetProvider" not in manifest:
               manifest = manifest.replace("</application>", receiver_block + "    </application>")
+
+          tts_receiver_block = (
+              "        <receiver android:name=\"" + pkg_name + ".TtsAlarmReceiver\" android:exported=\"false\" />\n"
+          )
+          if "TtsAlarmReceiver" not in manifest:
+              manifest = manifest.replace("</application>", tts_receiver_block + "    </application>")
 
           with open(manifest_path, "w") as f:
               f.write(manifest)
