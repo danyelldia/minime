@@ -1,0 +1,38 @@
+// Placeholder replaced by the build workflow with MiniMe's real
+// application package before compilation.
+package __PACKAGE__
+
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+
+/// Restores native TTS alarms after the device reboots (or after the app
+/// is updated, which also clears AlarmManager alarms on some OEM skins).
+/// MiniMe persists every scheduled alarm's id, title and trigger time in
+/// TtsAlarmStore, so on BOOT_COMPLETED we simply re-arm anything that's
+/// still in the future. Alarms whose trigger time already passed while the
+/// phone was off are dropped instead of firing immediately, so the user
+/// isn't hit with a flood of stale voice reminders right after boot.
+class TtsAlarmBootReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        val action = intent.action
+        if (action != Intent.ACTION_BOOT_COMPLETED &&
+            action != "android.intent.action.QUICKBOOT_POWERON" &&
+            action != Intent.ACTION_MY_PACKAGE_REPLACED
+        ) {
+            return
+        }
+
+        val now = System.currentTimeMillis()
+        val alarms = TtsAlarmStore.all(context)
+        for ((id, entry) in alarms) {
+            val (title, triggerAtMillis) = entry
+            if (triggerAtMillis > now) {
+                TtsAlarmScheduler.schedule(context, id, title, triggerAtMillis)
+            } else {
+                TtsAlarmStore.remove(context, id)
+            }
+        }
+    }
+}
+
