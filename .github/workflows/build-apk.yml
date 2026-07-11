@@ -78,6 +78,12 @@ jobs:
               compileOptions {
                   isCoreLibraryDesugaringEnabled = true
               }
+              buildTypes {
+                  release {
+                      isMinifyEnabled = false
+                      isShrinkResources = false
+                  }
+              }
           }
 
           dependencies {
@@ -92,6 +98,12 @@ jobs:
               compileSdk 36
               compileOptions {
                   coreLibraryDesugaringEnabled true
+              }
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                      shrinkResources false
+                  }
               }
           }
 
