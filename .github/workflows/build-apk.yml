@@ -28,7 +28,40 @@ jobs:
 
       - name: Seteaza compileSdk global (necesar pentru share_plus si alte plugin-uri)
         run: |
-          echo "flutter.compileSdkVersion=36" >> android/gradle.properties
+          python3 -c '
+          import os
+          groovy = "android/build.gradle"
+          kts = "android/build.gradle.kts"
+          if os.path.exists(kts):
+              path = kts
+              addition = """
+
+          subprojects {
+              afterEvaluate {
+                  extensions.findByType(com.android.build.gradle.BaseExtension::class.java)?.let {
+                      it.compileSdkVersion(36)
+                  }
+              }
+          }
+          """
+          else:
+              path = groovy
+              addition = """
+
+          subprojects {
+              afterEvaluate { proj ->
+                  if (proj.hasProperty("android")) {
+                      proj.android {
+                          compileSdkVersion 36
+                      }
+                  }
+              }
+          }
+          """
+          with open(path, "a") as f:
+              f.write(addition)
+          print("patched root:", path)
+          '
 
       - name: Activeaza core library desugaring (necesar pentru flutter_local_notifications)
         run: |
@@ -59,7 +92,7 @@ jobs:
               compileSdk 36
               compileOptions {
                   coreLibraryDesugaringEnabled true
-              }
+          }
           }
 
           dependencies {
