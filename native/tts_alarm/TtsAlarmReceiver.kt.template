@@ -18,6 +18,13 @@ import java.util.Locale
 class TtsAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val title = intent.getStringExtra("tts_title")
+        val id = intent.getIntExtra("tts_id", -1)
+        // A alarma tocmai a sunat, deci nu mai e "pending" - o scoatem din
+        // storage-ul persistent ca sa nu fie reprogramata gresit dupa un
+        // eventual restart ulterior al telefonului.
+        if (id != -1) {
+            TtsAlarmStore.remove(context, id)
+        }
         if (title.isNullOrBlank()) return
 
         val pendingResult = goAsync()
@@ -46,4 +53,3 @@ class TtsAlarmReceiver : BroadcastReceiver() {
         }
     }
 }
-
