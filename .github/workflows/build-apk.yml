@@ -26,6 +26,10 @@ jobs:
           cp -r tmp_scaffold/android ./android
           rm -rf tmp_scaffold
 
+      - name: Seteaza compileSdk global (necesar pentru share_plus si alte plugin-uri)
+        run: |
+          echo "flutter.compileSdkVersion=36" >> android/gradle.properties
+
       - name: Activeaza core library desugaring (necesar pentru flutter_local_notifications)
         run: |
           python3 -c '
