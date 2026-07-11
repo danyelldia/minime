@@ -6,6 +6,8 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../db/database_helper.dart';
 import '../models/note_task.dart';
+import 'tts_alarm_service.dart';
+import 'tts_service.dart';
 
 const String _channelId = 'minime_reminders';
 const String _channelName = 'MiniMe - Remindere';
@@ -77,6 +79,13 @@ Future<void> _logHistory(String taskId, String action, {int? snoozeMinutes}) asy
 
 /// Programeaza si anuleaza notificari locale pentru to-do-uri, cu suport
 /// pentru recurenta zilnica si actiuni: Done / Snooze 15m / Not azi / Maine.
+///
+/// Fiecare reminder programat porneste DOUA alarme in paralel, la aceeasi
+/// ora: notificarea vizuala normala (cu sunetul standard de notificare) si
+/// o alarma nativa separata (vezi tts_alarm_service.dart) care citeste cu
+/// voce tare titlul task-ului, folosind motorul TextToSpeech al
+/// telefonului direct din Kotlin - functioneaza chiar daca aplicatia a
+/// fost inchisa complet, fara sa fie nevoie de niciun buton "asculta".
 class NotificationService {
   NotificationService._();
   static final NotificationService instance = NotificationService._();
@@ -102,6 +111,16 @@ class NotificationService {
       final androidPlugin = _plugin
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
       await androidPlugin?.requestNotificationsPermission();
+      try {
+        // Android 12+ (API 31+): fara acest permis, alarmele "exacte" sunt
+        // degradate silentios la "inexacte" de catre sistem, ceea ce poate
+        // intarzia sau chiar sari peste un reminder programat la o ora
+        // precisa. Cere permisiunea explicit (deschide ecranul de setari
+        // daca nu e deja acordata).
+        await androidPlugin?.requestExactAlarmsPermission();
+      } catch (e) {
+        // Nu toate versiunile de Android/plugin au aceasta metoda - ignora.
+      }
       await androidPlugin?.createNotificationChannel(const AndroidNotificationChannel(
         _channelId,
         _channelName,
@@ -163,16 +182,28 @@ class NotificationService {
           : 'Reminder MiniMe',
       scheduled,
       NotificationDetails(android: _androidDetails(), iOS: const DarwinNotificationDetails()),
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: daily ? DateTimeComponents.time : null,
       payload: task.id,
+    );
+
+    // Recurenta zilnica nu se poate exprima direct pe alarma nativa (nu are
+    // logica de "match time-of-day" ca zonedSchedule), asa ca pentru task-uri
+    // DAILY programam doar urmatoarea aparitie; se reprogrameaza automat
+    // maine cand notificarea vizuala e reafisata (vezi handleNotificationAction).
+    await TtsAlarmService.instance.schedule(
+      id: id,
+      title: task.title,
+      when: scheduled,
     );
   }
 
   /// Fires an immediate (non-scheduled) notification for a location-based
   /// reminder - used by LocationService when the user enters range of a
-  /// to-do's saved location.
+  /// to-do's saved location. Aplicatia ruleaza deja in acest moment, asa
+  /// ca citim task-ul cu voce tare direct prin flutter_tts, fara sa mai
+  /// fie nevoie de alarma nativa.
   Future<void> showLocationReminder(NoteTask task) async {
     final id = _notificationIdFor('loc_${task.id}');
     await _plugin.show(
@@ -182,9 +213,13 @@ class NotificationService {
       NotificationDetails(android: _androidDetails(), iOS: const DarwinNotificationDetails()),
       payload: task.id,
     );
+    TtsService.instance.speak(task.title);
   }
 
   Future<void> cancelReminder(String taskId) async {
-    await _plugin.cancel(_notificationIdFor(taskId));
+    final id = _notificationIdFor(taskId);
+    await _plugin.cancel(id);
+    await TtsAlarmService.instance.cancel(id);
   }
 }
+
