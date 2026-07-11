@@ -26,43 +26,6 @@ jobs:
           cp -r tmp_scaffold/android ./android
           rm -rf tmp_scaffold
 
-      - name: Seteaza compileSdk global (necesar pentru share_plus si alte plugin-uri)
-        run: |
-          python3 -c '
-          import os
-          groovy = "android/build.gradle"
-          kts = "android/build.gradle.kts"
-          if os.path.exists(kts):
-              path = kts
-              addition = """
-
-          subprojects {
-              afterEvaluate {
-                  extensions.findByType(com.android.build.gradle.BaseExtension::class.java)?.let {
-                      it.compileSdkVersion(36)
-                  }
-              }
-          }
-          """
-          else:
-              path = groovy
-              addition = """
-
-          subprojects {
-              afterEvaluate { proj ->
-                  if (proj.hasProperty("android")) {
-                      proj.android {
-                          compileSdkVersion 36
-                      }
-                  }
-              }
-          }
-          """
-          with open(path, "a") as f:
-              f.write(addition)
-          print("patched root:", path)
-          '
-
       - name: Activeaza core library desugaring (necesar pentru flutter_local_notifications)
         run: |
           python3 -c '
@@ -92,7 +55,7 @@ jobs:
               compileSdk 36
               compileOptions {
                   coreLibraryDesugaringEnabled true
-          }
+              }
           }
 
           dependencies {
@@ -169,6 +132,30 @@ jobs:
 
       - name: Instaleaza dependintele
         run: flutter pub get
+
+      - name: Forteaza compileSdk 36 in toate plugin-urile din pub cache (share_plus, home_widget etc)
+        run: |
+          python3 -c '
+          import glob
+          import os
+          patched = []
+          patterns = [
+              os.path.expanduser("~/.pub-cache/hosted/*/*/android/build.gradle"),
+              os.path.expanduser("~/.pub-cache/hosted/*/*/android/build.gradle.kts"),
+          ]
+          for pattern in patterns:
+              for path in glob.glob(pattern):
+                  with open(path) as f:
+                      content = f.read()
+                  if "flutter.compileSdkVersion" in content:
+                      new_content = content.replace("flutter.compileSdkVersion", "36")
+                      with open(path, "w") as f:
+                          f.write(new_content)
+                      patched.append(path)
+          print("patched", len(patched), "plugin build files:")
+          for p in patched:
+              print(" -", p)
+          '
 
       - name: Compileaza APK (release)
         run: flutter build apk --release --no-tree-shake-icons
