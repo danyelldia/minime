@@ -164,6 +164,7 @@ class NotificationService {
       scheduled,
       NotificationDetails(android: _androidDetails(), iOS: const DarwinNotificationDetails()),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: daily ? DateTimeComponents.time : null,
       payload: task.id,
     );
