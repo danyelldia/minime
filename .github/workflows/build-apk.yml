@@ -37,6 +37,7 @@ jobs:
               addition = """
 
           android {
+              compileSdk = 36
               compileOptions {
                   isCoreLibraryDesugaringEnabled = true
               }
@@ -51,6 +52,7 @@ jobs:
               addition = """
 
           android {
+              compileSdk 36
               compileOptions {
                   coreLibraryDesugaringEnabled true
               }
@@ -146,5 +148,4 @@ jobs:
           tag_name: build-${{ github.run_number }}
           name: MiniMe build ${{ github.run_number }}
           files: build/app/outputs/flutter-apk/app-release.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+       
