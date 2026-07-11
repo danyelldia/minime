@@ -7,6 +7,7 @@ import '../providers/bill_provider.dart';
 import '../providers/note_task_provider.dart';
 import '../providers/priority_tag_provider.dart';
 import '../widgets/note_card.dart';
+import 'history_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -54,7 +55,19 @@ class DashboardScreen extends StatelessWidget {
     final todos = taskProvider.pendingTodos;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('MiniMe')),
+      appBar: AppBar(
+        title: const Text('MiniMe'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history_rounded),
+            tooltip: 'Istoric',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const HistoryScreen()),
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _quickAddNote(context),
         child: const Icon(Icons.edit_note_rounded),

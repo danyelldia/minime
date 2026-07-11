@@ -4,18 +4,21 @@ import 'package:provider/provider.dart';
 import 'db/database_helper.dart';
 import 'providers/bill_provider.dart';
 import 'providers/category_provider.dart';
+import 'providers/history_provider.dart';
 import 'providers/note_task_provider.dart';
 import 'providers/priority_tag_provider.dart';
 import 'screens/bills_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/notes_screen.dart';
 import 'screens/today_screen.dart';
+import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // initializeaza baza de date locala + seed-uieste categoriile/tag-urile implicite
   await DatabaseHelper.instance.database;
+  await NotificationService.instance.initialize();
   runApp(const MiniMeApp());
 }
 
@@ -30,6 +33,7 @@ class MiniMeApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PriorityTagProvider()..load()),
         ChangeNotifierProvider(create: (_) => NoteTaskProvider()..load()),
         ChangeNotifierProvider(create: (_) => BillProvider()..load()),
+        ChangeNotifierProvider(create: (_) => HistoryProvider()..load()),
       ],
       child: MaterialApp(
         title: 'MiniMe',
@@ -43,9 +47,9 @@ class MiniMeApp extends StatelessWidget {
   }
 }
 
-/// Schela principala cu navigare intre cele 4 sectiuni. Toate sunt acum
-/// functionale: Dashboard (Faza 2), Notes & To-Do (Faza 2), Bills (Faza 3),
-/// Today (Faza 4 - motor de prioritizare zilnica).
+/// Schela principala cu navigare intre cele 4 sectiuni. Toate sunt
+/// functionale: Dashboard, Notes & To-Do, Bills, Today. Istoricul e
+/// accesibil din AppBar-ul Dashboard-ului (Faza 5).
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 

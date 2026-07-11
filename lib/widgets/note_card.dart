@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/note_task.dart';
 import '../models/priority_tag.dart';
+import '../services/tts_service.dart';
 
 class NoteTaskCard extends StatelessWidget {
   final NoteTask task;
@@ -83,10 +84,32 @@ class NoteTaskCard extends StatelessWidget {
                                     visualDensity: VisualDensity.compact,
                                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
+                                if (task.reminderTime != null)
+                                  Chip(
+                                    avatar: const Icon(Icons.notifications_active_rounded, size: 14),
+                                    label: Text(
+                                      '${task.reminderTime!.hour.toString().padLeft(2, '0')}:'
+                                      '${task.reminderTime!.minute.toString().padLeft(2, '0')}'
+                                      '${task.recurrenceRule == 'DAILY' ? ' zilnic' : ''}',
+                                      style: const TextStyle(fontSize: 11),
+                                    ),
+                                    visualDensity: VisualDensity.compact,
+                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
                               ],
                             ),
                           ],
                         ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.volume_up_rounded, size: 20),
+                        tooltip: 'Citeste cu voce',
+                        onPressed: () {
+                          final text = task.description != null && task.description!.isNotEmpty
+                              ? '${task.title}. ${task.description}'
+                              : task.title;
+                          TtsService.instance.speak(text);
+                        },
                       ),
                     ],
                   ),

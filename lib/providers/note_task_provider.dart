@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../db/database_helper.dart';
 import '../models/note_task.dart';
+import '../services/notification_service.dart';
 
 /// Gestioneaza notitele si to-do-urile: incarcare, adaugare, editare,
-/// stergere si marcare Done/Not Done.
+/// stergere, marcare Done/Not Done - si logheaza in istoric evenimentele
+/// relevante (creat, bifat Done).
 class NoteTaskProvider extends ChangeNotifier {
   List<NoteTask> _tasks = [];
 
@@ -29,10 +31,22 @@ class NoteTaskProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _logHistory(String taskId, String action) async {
+    final db = await DatabaseHelper.instance.database;
+    await db.insert('history_entries', {
+      'id': 'h_${DateTime.now().microsecondsSinceEpoch}',
+      'noteTaskId': taskId,
+      'action': action,
+      'timestamp': DateTime.now().toIso8601String(),
+      'snoozeMinutes': null,
+    });
+  }
+
   Future<void> addTask(NoteTask task) async {
     final db = await DatabaseHelper.instance.database;
     await db.insert('note_tasks', task.toMap());
     _tasks.insert(0, task);
+    await _logHistory(task.id, 'created');
     notifyListeners();
   }
 
@@ -53,10 +67,12 @@ class NoteTaskProvider extends ChangeNotifier {
     final db = await DatabaseHelper.instance.database;
     await db.delete('note_tasks', where: 'id = ?', whereArgs: [id]);
     _tasks.removeWhere((t) => t.id == id);
+    await NotificationService.instance.cancelReminder(id);
     notifyListeners();
   }
 
-  /// Comuta starea Done <-> Not Done si seteaza/curata completedAt.
+  /// Comuta starea Done <-> Not Done, seteaza/curata completedAt,
+  /// anuleaza reminder-ul cand devine Done si logheaza in istoric.
   Future<void> toggleDone(NoteTask task) async {
     final newDone = !task.isDone;
     final updated = NoteTask(
@@ -77,5 +93,9 @@ class NoteTaskProvider extends ChangeNotifier {
       googleCalendarEventId: task.googleCalendarEventId,
     );
     await updateTask(updated);
+    if (newDone) {
+      await NotificationService.instance.cancelReminder(task.id);
+      await _logHistory(task.id, 'done');
+    }
   }
 }
