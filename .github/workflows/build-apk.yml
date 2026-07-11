@@ -133,17 +133,32 @@ jobs:
       - name: Instaleaza dependintele
         run: flutter pub get
 
-      - name: DEBUG - afiseaza build.gradle pentru share_plus si home_widget
+      - name: Forteaza compileSdk 36 in toate plugin-urile din pub cache (share_plus, home_widget etc)
         run: |
           python3 -c '
           import glob
           import os
-          for name in ["share_plus", "home_widget", "flutter_tts"]:
-              matches = glob.glob(os.path.expanduser(f"~/.pub-cache/hosted/*/{name}-*/android/build.gradle*"))
-              for path in matches:
-                  print("=" * 20, path, "=" * 20)
+          import re
+          patched = []
+          patterns = [
+              os.path.expanduser("~/.pub-cache/hosted/*/*/android/build.gradle"),
+              os.path.expanduser("~/.pub-cache/hosted/*/*/android/build.gradle.kts"),
+          ]
+          for pattern in patterns:
+              for path in glob.glob(pattern):
                   with open(path) as f:
-                      print(f.read())
+                      content = f.read()
+                  new_content = content
+                  new_content = re.sub(r"compileSdkVersion\s+\d+", "compileSdkVersion 36", new_content)
+                  new_content = re.sub(r"compileSdk\s*=\s*\d+", "compileSdk = 36", new_content)
+                  new_content = new_content.replace("flutter.compileSdkVersion", "36")
+                  if new_content != content:
+                      with open(path, "w") as f:
+                          f.write(new_content)
+                      patched.append(path)
+          print("patched", len(patched), "plugin build files:")
+          for p in patched:
+              print(" -", p)
           '
 
       - name: Compileaza APK (release)
