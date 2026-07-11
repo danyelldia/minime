@@ -26,6 +26,43 @@ jobs:
           cp -r tmp_scaffold/android ./android
           rm -rf tmp_scaffold
 
+      - name: Fixeaza crash WorkManager (versiuni androidx.work conflictuale intre plugin-uri)
+        run: |
+          python3 -c '
+          import os
+          groovy = "android/build.gradle"
+          kts = "android/build.gradle.kts"
+          if os.path.exists(kts):
+              path = kts
+              addition = """
+
+          allprojects {
+              configurations.all {
+                  resolutionStrategy {
+                      force("androidx.work:work-runtime:2.9.0")
+                      force("androidx.work:work-runtime-ktx:2.9.0")
+                  }
+              }
+          }
+          """
+          else:
+              path = groovy
+              addition = """
+
+          allprojects {
+              configurations.all {
+                  resolutionStrategy {
+                      force "androidx.work:work-runtime:2.9.0"
+                      force "androidx.work:work-runtime-ktx:2.9.0"
+                  }
+              }
+          }
+          """
+          with open(path, "a") as f:
+              f.write(addition)
+          print("patched:", path)
+          '
+
       - name: Activeaza core library desugaring (necesar pentru flutter_local_notifications)
         run: |
           python3 -c '
@@ -176,4 +213,4 @@ jobs:
           tag_name: build-${{ github.run_number }}
           name: MiniMe build ${{ github.run_number }}
           files: build/app/outputs/flutter-apk/app-release.apk
-       
+
