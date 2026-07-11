@@ -1,0 +1,65 @@
+// Placeholder replaced by the build workflow with MiniMe's real
+// application package before compilation.
+package __PACKAGE__
+
+import android.content.Context
+import org.json.JSONObject
+
+/// Persists scheduled native TTS alarms (id -> title + trigger time) in
+/// SharedPreferences, since AlarmManager alarms are wiped by the OS on
+/// every device reboot. TtsAlarmBootReceiver reads this store after boot
+/// to re-arm any reminders that are still in the future.
+object TtsAlarmStore {
+    private const val PREFS_NAME = "minime_tts_alarms"
+    private const val KEY_DATA = "alarms_json"
+
+    private fun prefs(context: Context) =
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    @Synchronized
+    fun put(context: Context, id: Int, title: String, triggerAtMillis: Long) {
+        val json = readJson(context)
+        val entry = JSONObject()
+        entry.put("title", title)
+        entry.put("triggerAtMillis", triggerAtMillis)
+        json.put(id.toString(), entry)
+        writeJson(context, json)
+    }
+
+    @Synchronized
+    fun remove(context: Context, id: Int) {
+        val json = readJson(context)
+        json.remove(id.toString())
+        writeJson(context, json)
+    }
+
+    @Synchronized
+    fun all(context: Context): Map<Int, Pair<String, Long>> {
+        val json = readJson(context)
+        val result = mutableMapOf<Int, Pair<String, Long>>()
+        val keys = json.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            val entry = json.optJSONObject(key) ?: continue
+            val title = entry.optString("title", "")
+            val trigger = entry.optLong("triggerAtMillis", 0L)
+            val id = key.toIntOrNull() ?: continue
+            result[id] = title to trigger
+        }
+        return result
+    }
+
+    private fun readJson(context: Context): JSONObject {
+        val raw = prefs(context).getString(KEY_DATA, null) ?: return JSONObject()
+        return try {
+            JSONObject(raw)
+        } catch (e: Exception) {
+            JSONObject()
+        }
+    }
+
+    private fun writeJson(context: Context, json: JSONObject) {
+        prefs(context).edit().putString(KEY_DATA, json.toString()).apply()
+    }
+}
+
