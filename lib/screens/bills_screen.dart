@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/bill_item.dart';
 import '../providers/bill_provider.dart';
 import '../widgets/bill_card.dart';
+import '../widgets/quick_add_sheet.dart';
 import 'bill_edit_screen.dart';
 
 class BillsScreen extends StatelessWidget {
@@ -15,12 +16,12 @@ class BillsScreen extends StatelessWidget {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Bills / Income / Wanted'),
+          title: const Text('Bills / Income / Shopping'),
           bottom: const TabBar(
             tabs: [
               Tab(text: 'Bills'),
               Tab(text: 'Income'),
-              Tab(text: 'Wanted'),
+              Tab(text: 'Shopping'),
             ],
           ),
         ),
@@ -28,7 +29,7 @@ class BillsScreen extends StatelessWidget {
           children: [
             _BillList(category: BillCategory.bill),
             _BillList(category: BillCategory.income),
-            _BillList(category: BillCategory.wanted),
+            _BillList(category: BillCategory.shopping),
           ],
         ),
         floatingActionButton: Builder(
@@ -36,13 +37,11 @@ class BillsScreen extends StatelessWidget {
             return FloatingActionButton(
               onPressed: () {
                 final tabIndex = DefaultTabController.of(ctx).index;
-                Navigator.push(
+                final category = BillCategory.values[tabIndex];
+                showQuickAddSheet(
                   ctx,
-                  MaterialPageRoute(
-                    builder: (_) => BillEditScreen(
-                      defaultCategory: BillCategory.values[tabIndex],
-                    ),
-                  ),
+                  initialKind:
+                      category == BillCategory.shopping ? QuickAddKind.shopping : QuickAddKind.bill,
                 );
               },
               child: const Icon(Icons.add_rounded),
@@ -61,11 +60,11 @@ class _BillList extends StatelessWidget {
   String _label(BillCategory c) {
     switch (c) {
       case BillCategory.bill:
-        return 'Total neplatit';
+        return 'Total unpaid';
       case BillCategory.income:
-        return 'Total asteptat';
-      case BillCategory.wanted:
-        return 'Cost total ramas';
+        return 'Total expected';
+      case BillCategory.shopping:
+        return 'Total remaining cost';
     }
   }
 
@@ -84,7 +83,7 @@ class _BillList extends StatelessWidget {
             children: [
               Text(_label(category), style: Theme.of(context).textTheme.titleSmall),
               Text(
-                '${total.toStringAsFixed(2)} lei',
+                '${total.toStringAsFixed(2)} RON',
                 style: Theme.of(context)
                     .textTheme
                     .titleMedium
@@ -95,7 +94,7 @@ class _BillList extends StatelessWidget {
         ),
         Expanded(
           child: items.isEmpty
-              ? const Center(child: Text('Nimic aici inca'))
+              ? const Center(child: Text('Nothing here yet'))
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: items.length,

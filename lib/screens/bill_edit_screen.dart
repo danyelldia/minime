@@ -89,11 +89,11 @@ class _BillEditScreenState extends State<BillEditScreen> {
   String _categoryLabel(BillCategory c) {
     switch (c) {
       case BillCategory.bill:
-        return 'Bill (factura)';
+        return 'Bill';
       case BillCategory.income:
-        return 'Income (venit asteptat)';
-      case BillCategory.wanted:
-        return 'Wanted (de cumparat)';
+        return 'Income';
+      case BillCategory.shopping:
+        return 'Shopping list item';
     }
   }
 
@@ -101,7 +101,7 @@ class _BillEditScreenState extends State<BillEditScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.existing != null ? 'Editeaza' : 'Adauga'),
+        title: Text(widget.existing != null ? 'Edit' : 'Add'),
         actions: [
           if (widget.existing != null)
             IconButton(icon: const Icon(Icons.delete_outline_rounded), onPressed: _delete),
@@ -112,7 +112,7 @@ class _BillEditScreenState extends State<BillEditScreen> {
         children: [
           DropdownButtonFormField<BillCategory>(
             value: _category,
-            decoration: const InputDecoration(labelText: 'Tip', border: OutlineInputBorder()),
+            decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder()),
             items: BillCategory.values
                 .map((c) => DropdownMenuItem(value: c, child: Text(_categoryLabel(c))))
                 .toList(),
@@ -121,20 +121,20 @@ class _BillEditScreenState extends State<BillEditScreen> {
           const SizedBox(height: 16),
           TextField(
             controller: _nameController,
-            decoration: const InputDecoration(labelText: 'Nume', border: OutlineInputBorder()),
+            decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder()),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: _amountController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(labelText: 'Suma (lei)', border: OutlineInputBorder()),
+            decoration: const InputDecoration(labelText: 'Amount (RON)', border: OutlineInputBorder()),
           ),
           const SizedBox(height: 16),
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(_dueDate == null
-                ? 'Fara data'
-                : 'Data: ${_dueDate!.day}/${_dueDate!.month}/${_dueDate!.year}'),
+                ? 'No date'
+                : 'Date: ${_dueDate!.day}/${_dueDate!.month}/${_dueDate!.year}'),
             trailing: const Icon(Icons.calendar_month_rounded),
             onTap: _pickDate,
           ),
@@ -143,12 +143,12 @@ class _BillEditScreenState extends State<BillEditScreen> {
             controller: _notesController,
             maxLines: 3,
             decoration: const InputDecoration(
-              labelText: 'Notite (optional)',
+              labelText: 'Notes (optional)',
               border: OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 32),
-          FilledButton(onPressed: _save, child: const Text('Salveaza')),
+          FilledButton(onPressed: _save, child: const Text('Save')),
         ],
       ),
     );

@@ -1,16 +1,16 @@
-enum BillCategory { bill, income, wanted }
+enum BillCategory { bill, income, shopping }
 
-/// Un element din sectiunea financiara a Dashboard-ului:
-/// - bill: o factura de platit
-/// - income: bani pe care ii astepti
-/// - wanted: ceva ce vrei sa cumperi
+/// An item in the Dashboard's financial section:
+/// - bill: a bill to pay
+/// - income: money you're expecting
+/// - shopping: something on your shopping list
 class BillItem {
   final String id;
   final String name;
   final double amount;
   final BillCategory category;
   final DateTime? dueDate;
-  final bool isSettled; // platita / primit / cumparat
+  final bool isSettled; // paid / received / bought
   final String? notes;
 
   const BillItem({
@@ -52,13 +52,21 @@ class BillItem {
         'notes': notes,
       };
 
-  factory BillItem.fromMap(Map<String, dynamic> map) => BillItem(
-        id: map['id'] as String,
-        name: map['name'] as String,
-        amount: (map['amount'] as num).toDouble(),
-        category: BillCategory.values.byName(map['category'] as String),
-        dueDate: map['dueDate'] != null ? DateTime.parse(map['dueDate'] as String) : null,
-        isSettled: (map['isSettled'] as int) == 1,
-        notes: map['notes'] as String?,
-      );
+  factory BillItem.fromMap(Map<String, dynamic> map) {
+    // 'wanted' was the old name for this category (pre Faza 6) - kept for
+    // backward compatibility with rows created by earlier builds.
+    final rawCategory = map['category'] as String;
+    final category = rawCategory == 'wanted'
+        ? BillCategory.shopping
+        : BillCategory.values.byName(rawCategory);
+    return BillItem(
+      id: map['id'] as String,
+      name: map['name'] as String,
+      amount: (map['amount'] as num).toDouble(),
+      category: category,
+      dueDate: map['dueDate'] != null ? DateTime.parse(map['dueDate'] as String) : null,
+      isSettled: (map['isSettled'] as int) == 1,
+      notes: map['notes'] as String?,
+    );
+  }
 }

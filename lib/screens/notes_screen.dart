@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/category_provider.dart';
 import '../providers/note_task_provider.dart';
 import '../widgets/category_card.dart';
+import '../widgets/quick_add_sheet.dart';
 import 'category_detail_screen.dart';
 import 'category_edit_screen.dart';
 
@@ -17,16 +18,25 @@ class NotesScreen extends StatelessWidget {
     final mainCategories = categoryProvider.mainCategories;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Notes & To-Do')),
+      appBar: AppBar(
+        title: const Text('Notes & To-Do'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.create_new_folder_outlined),
+            tooltip: 'New category',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CategoryEditScreen()),
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const CategoryEditScreen()),
-        ),
+        onPressed: () => showQuickAddSheet(context, initialKind: QuickAddKind.task),
         child: const Icon(Icons.add_rounded),
       ),
       body: mainCategories.isEmpty
-          ? const Center(child: Text('Nicio categorie inca'))
+          ? const Center(child: Text('No categories yet'))
           : GridView.builder(
               padding: const EdgeInsets.all(16),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(

@@ -65,28 +65,28 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.existing != null
-            ? 'Editeaza categoria'
+            ? 'Edit category'
             : isSubcategory
-                ? 'Subcategorie noua'
-                : 'Categorie noua'),
+                ? 'New subcategory'
+                : 'New category'),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           TextField(
             controller: _nameController,
-            decoration: const InputDecoration(labelText: 'Nume', border: OutlineInputBorder()),
+            decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder()),
           ),
           const SizedBox(height: 24),
-          Text('Iconita', style: Theme.of(context).textTheme.titleSmall),
+          Text('Icon', style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),
           IconPickerGrid(selected: _icon, onChanged: (i) => setState(() => _icon = i)),
           const SizedBox(height: 24),
-          Text('Culoare', style: Theme.of(context).textTheme.titleSmall),
+          Text('Color', style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),
           ColorSwatchPicker(selected: _color, onChanged: (c) => setState(() => _color = c)),
           const SizedBox(height: 32),
-          FilledButton(onPressed: _save, child: const Text('Salveaza')),
+          FilledButton(onPressed: _save, child: const Text('Save')),
         ],
       ),
     );

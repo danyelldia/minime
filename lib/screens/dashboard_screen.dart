@@ -1,49 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
 
-import '../models/note_task.dart';
 import '../providers/bill_provider.dart';
+import '../providers/history_provider.dart';
 import '../providers/note_task_provider.dart';
 import '../providers/priority_tag_provider.dart';
 import '../widgets/note_card.dart';
+import '../widgets/quick_add_sheet.dart';
+import 'eisenhower_screen.dart';
 import 'history_screen.dart';
+import 'settings_screen.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
-  void _quickAddNote(BuildContext context) {
-    final controller = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Notita rapida'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'Scrie ceva...'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Anuleaza')),
-          FilledButton(
-            onPressed: () {
-              final text = controller.text.trim();
-              if (text.isEmpty) return;
-              final task = NoteTask(
-                id: const Uuid().v4(),
-                title: text,
-                type: ItemType.note,
-                categoryId: 'personal',
-                createdAt: DateTime.now(),
-              );
-              context.read<NoteTaskProvider>().addTask(task);
-              Navigator.pop(ctx);
-            },
-            child: const Text('Salveaza'),
-          ),
-        ],
-      ),
-    );
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<HistoryProvider>().load();
+    });
   }
 
   @override
@@ -51,33 +32,69 @@ class DashboardScreen extends StatelessWidget {
     final taskProvider = context.watch<NoteTaskProvider>();
     final tagProvider = context.watch<PriorityTagProvider>();
     final billProvider = context.watch<BillProvider>();
+    final history = context.watch<HistoryProvider>();
     final notes = taskProvider.recentNotes.take(5).toList();
     final todos = taskProvider.pendingTodos;
+    final streak = history.currentStreak;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('MiniMe'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.grid_view_rounded),
+            tooltip: 'Eisenhower Matrix',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const EisenhowerScreen()),
+            ),
+          ),
+          IconButton(
             icon: const Icon(Icons.history_rounded),
-            tooltip: 'Istoric',
+            tooltip: 'History',
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const HistoryScreen()),
             ),
           ),
+          IconButton(
+            icon: const Icon(Icons.settings_rounded),
+            tooltip: 'Settings',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ),
+          ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _quickAddNote(context),
+        onPressed: () => showQuickAddSheet(context, initialKind: QuickAddKind.note),
         child: const Icon(Icons.edit_note_rounded),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (streak > 0)
+            Card(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  children: [
+                    const Icon(Icons.local_fire_department_rounded, color: Colors.deepOrange),
+                    const SizedBox(width: 10),
+                    Text(
+                      '$streak day${streak == 1 ? '' : 's'} streak - keep it going!',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (streak > 0) const SizedBox(height: 16),
           const _SectionHeader(title: 'Quick Notes', icon: Icons.sticky_note_2_rounded),
           if (notes.isEmpty)
-            const _EmptyHint(text: 'Nicio notita inca. Apasa + ca sa adaugi una.')
+            const _EmptyHint(text: 'No notes yet. Tap + to add one.')
           else
             ...notes.map((n) => NoteTaskCard(
                   task: n,
@@ -87,7 +104,7 @@ class DashboardScreen extends StatelessWidget {
           const SizedBox(height: 24),
           _SectionHeader(title: 'To-Do (${todos.length} active)', icon: Icons.checklist_rounded),
           if (todos.isEmpty)
-            const _EmptyHint(text: 'Nimic de facut momentan.')
+            const _EmptyHint(text: 'Nothing to do right now.')
           else
             ...todos.take(5).map((t) => NoteTaskCard(
                   task: t,
@@ -96,7 +113,7 @@ class DashboardScreen extends StatelessWidget {
                   onToggleDone: () => taskProvider.toggleDone(t),
                 )),
           const SizedBox(height: 24),
-          const _SectionHeader(title: 'Bills / Income / Wanted', icon: Icons.receipt_long_rounded),
+          const _SectionHeader(title: 'Bills / Income / Shopping', icon: Icons.receipt_long_rounded),
           const SizedBox(height: 8),
           Card(
             child: Padding(
@@ -104,20 +121,20 @@ class DashboardScreen extends StatelessWidget {
               child: Column(
                 children: [
                   _MoneyRow(
-                    label: 'Facturi neplatite',
+                    label: 'Unpaid bills',
                     amount: billProvider.totalUnpaidBills,
                     color: Colors.red,
                   ),
                   const SizedBox(height: 8),
                   _MoneyRow(
-                    label: 'Venituri asteptate',
+                    label: 'Expected income',
                     amount: billProvider.totalExpectedIncome,
                     color: Colors.green,
                   ),
                   const SizedBox(height: 8),
                   _MoneyRow(
-                    label: 'Cost lucruri dorite',
-                    amount: billProvider.totalWantedCost,
+                    label: 'Shopping list cost',
+                    amount: billProvider.totalShoppingCost,
                     color: Colors.blueGrey,
                   ),
                 ],
@@ -144,7 +161,7 @@ class _MoneyRow extends StatelessWidget {
       children: [
         Text(label),
         Text(
-          '${amount.toStringAsFixed(2)} lei',
+          '${amount.toStringAsFixed(2)} RON',
           style: TextStyle(fontWeight: FontWeight.bold, color: color),
         ),
       ],

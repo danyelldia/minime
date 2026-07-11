@@ -170,6 +170,20 @@ class NotificationService {
     );
   }
 
+  /// Fires an immediate (non-scheduled) notification for a location-based
+  /// reminder - used by LocationService when the user enters range of a
+  /// to-do's saved location.
+  Future<void> showLocationReminder(NoteTask task) async {
+    final id = _notificationIdFor('loc_${task.id}');
+    await _plugin.show(
+      id,
+      'Near ${task.locationName ?? 'a saved place'}',
+      task.title,
+      NotificationDetails(android: _androidDetails(), iOS: const DarwinNotificationDetails()),
+      payload: task.id,
+    );
+  }
+
   Future<void> cancelReminder(String taskId) async {
     await _plugin.cancel(_notificationIdFor(taskId));
   }

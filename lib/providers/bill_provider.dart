@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../db/database_helper.dart';
 import '../models/bill_item.dart';
 
-/// Gestioneaza sectiunea financiara a Dashboard-ului: bills (facturi),
-/// income (bani asteptati) si wanted (lucruri de cumparat).
+/// Manages the Dashboard's financial section: bills, income (money
+/// expected), and the shopping list.
 class BillProvider extends ChangeNotifier {
   List<BillItem> _items = [];
 
@@ -19,7 +19,7 @@ class BillProvider extends ChangeNotifier {
 
   double get totalUnpaidBills => _unsettledTotal(BillCategory.bill);
   double get totalExpectedIncome => _unsettledTotal(BillCategory.income);
-  double get totalWantedCost => _unsettledTotal(BillCategory.wanted);
+  double get totalShoppingCost => _unsettledTotal(BillCategory.shopping);
 
   Future<void> load() async {
     final db = await DatabaseHelper.instance.database;

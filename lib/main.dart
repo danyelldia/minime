@@ -7,16 +7,17 @@ import 'providers/category_provider.dart';
 import 'providers/history_provider.dart';
 import 'providers/note_task_provider.dart';
 import 'providers/priority_tag_provider.dart';
-import 'screens/bills_screen.dart';
-import 'screens/dashboard_screen.dart';
-import 'screens/notes_screen.dart';
-import 'screens/today_screen.dart';
+import 'providers/profile_provider.dart';
+import 'screens/home_shell.dart';
+import 'screens/onboarding_screen.dart';
+import 'services/home_widget_service.dart';
+import 'services/location_service.dart';
 import 'services/notification_service.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // initializeaza baza de date locala + seed-uieste categoriile/tag-urile implicite
+  // initialize the local database + seed default categories/tags
   await DatabaseHelper.instance.database;
   await NotificationService.instance.initialize();
   runApp(const MiniMeApp());
@@ -34,6 +35,7 @@ class MiniMeApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NoteTaskProvider()..load()),
         ChangeNotifierProvider(create: (_) => BillProvider()..load()),
         ChangeNotifierProvider(create: (_) => HistoryProvider()..load()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()..load()),
       ],
       child: MaterialApp(
         title: 'MiniMe',
@@ -41,46 +43,65 @@ class MiniMeApp extends StatelessWidget {
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
         themeMode: ThemeMode.system,
-        home: const HomeShell(),
+        home: const _AppRoot(),
       ),
     );
   }
 }
 
-/// Schela principala cu navigare intre cele 4 sectiuni. Toate sunt
-/// functionale: Dashboard, Notes & To-Do, Bills, Today. Istoricul e
-/// accesibil din AppBar-ul Dashboard-ului (Faza 5).
-class HomeShell extends StatefulWidget {
-  const HomeShell({super.key});
+/// Decides whether to show the first-run onboarding flow or jump
+/// straight into the app, and keeps the home screen widget / location
+/// reminders in sync whenever the app is opened or resumed.
+class _AppRoot extends StatefulWidget {
+  const _AppRoot();
 
   @override
-  State<HomeShell> createState() => _HomeShellState();
+  State<_AppRoot> createState() => _AppRootState();
 }
 
-class _HomeShellState extends State<HomeShell> {
-  int _index = 0;
+class _AppRootState extends State<_AppRoot> with WidgetsBindingObserver {
+  bool _ready = false;
 
-  final _tabs = const [
-    DashboardScreen(),
-    NotesScreen(),
-    BillsScreen(),
-    TodayScreen(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _init();
+  }
+
+  Future<void> _init() async {
+    final profileProvider = context.read<ProfileProvider>();
+    await profileProvider.load();
+    if (!mounted) return;
+    setState(() => _ready = true);
+    _syncBackground();
+  }
+
+  void _syncBackground() {
+    final taskProvider = context.read<NoteTaskProvider>();
+    HomeWidgetService.update(taskProvider);
+    LocationService.instance.checkGeofences(taskProvider);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _ready) {
+      _syncBackground();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _tabs[_index],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.dashboard_rounded), label: 'Dashboard'),
-          NavigationDestination(icon: Icon(Icons.checklist_rounded), label: 'Notes'),
-          NavigationDestination(icon: Icon(Icons.receipt_long_rounded), label: 'Bills'),
-          NavigationDestination(icon: Icon(Icons.today_rounded), label: 'Today'),
-        ],
-      ),
-    );
+    if (!_ready) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    final profile = context.watch<ProfileProvider>().profile;
+    return profile.onboardingDone ? const HomeShell() : const OnboardingScreen();
   }
 }

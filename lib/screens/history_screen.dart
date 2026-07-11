@@ -24,15 +24,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
   String _actionLabel(HistoryAction a) {
     switch (a) {
       case HistoryAction.created:
-        return 'Creat';
+        return 'Created';
       case HistoryAction.done:
-        return 'Bifat Done';
+        return 'Marked Done';
       case HistoryAction.snoozed:
-        return 'Amanat (Snooze)';
+        return 'Snoozed';
       case HistoryAction.notToday:
         return 'Not Today';
       case HistoryAction.movedTomorrow:
-        return 'Mutat pe maine';
+        return 'Moved to tomorrow';
     }
   }
 
@@ -57,15 +57,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final taskProvider = context.watch<NoteTaskProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Istoric')),
+      appBar: AppBar(title: const Text('History')),
       body: history.entries.isEmpty
-          ? const Center(child: Text('Niciun eveniment inca'))
+          ? const Center(child: Text('No events yet'))
           : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: history.entries.length,
               itemBuilder: (context, index) {
                 final entry = history.entries[index];
-                var taskTitle = 'Task sters';
+                var taskTitle = 'Deleted task';
                 for (final t in taskProvider.tasks) {
                   if (t.id == entry.noteTaskId) {
                     taskTitle = t.title;

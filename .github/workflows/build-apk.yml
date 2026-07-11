@@ -65,6 +65,69 @@ jobs:
           print("patched:", path)
           '
 
+      - name: Adauga widget-ul de home screen si permisiunile de locatie
+        run: |
+          python3 -c '
+          import glob
+          import os
+          import shutil
+
+          # 1) find the generated MainActivity.kt to discover the real
+          #    application package (org + project name), so the widget
+          #    provider ends up in the same package automatically.
+          matches = glob.glob("android/app/src/main/kotlin/**/MainActivity.kt", recursive=True)
+          assert matches, "MainActivity.kt not found - cannot place widget provider"
+          main_activity = matches[0]
+          pkg_dir = os.path.dirname(main_activity)
+          pkg_name = pkg_dir.split("kotlin/", 1)[1].replace("/", ".")
+          print("detected package:", pkg_name)
+
+          # 2) render the widget provider Kotlin file into that package
+          template = open("native/widget/TodayWidgetProvider.kt.template").read()
+          rendered = template.replace("__PACKAGE__", pkg_name)
+          with open(os.path.join(pkg_dir, "TodayWidgetProvider.kt"), "w") as f:
+              f.write(rendered)
+
+          # 3) copy the widget layout + info XML into the res folders
+          os.makedirs("android/app/src/main/res/layout", exist_ok=True)
+          os.makedirs("android/app/src/main/res/xml", exist_ok=True)
+          shutil.copy("native/widget/today_widget_layout.xml", "android/app/src/main/res/layout/today_widget_layout.xml")
+          shutil.copy("native/widget/today_widget_info.xml", "android/app/src/main/res/xml/today_widget_info.xml")
+
+          # 4) patch AndroidManifest.xml: add location permissions + the
+          #    widget receiver declaration.
+          manifest_path = "android/app/src/main/AndroidManifest.xml"
+          manifest = open(manifest_path).read()
+
+          permissions = (
+              "    <uses-permission android:name=\"android.permission.ACCESS_FINE_LOCATION\" />\n"
+              "    <uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\" />\n"
+          )
+          if "ACCESS_FINE_LOCATION" not in manifest:
+              manifest = manifest.replace(
+                  "<manifest ", "<manifest ", 1
+              )
+              # insert permissions right after the opening <manifest ...> tag
+              idx = manifest.index(">", manifest.index("<manifest ")) + 1
+              manifest = manifest[:idx] + "\n" + permissions + manifest[idx:]
+
+          receiver_block = (
+              "        <receiver android:name=\"" + pkg_name + ".TodayWidgetProvider\" android:exported=\"true\">\n"
+              "            <intent-filter>\n"
+              "                <action android:name=\"android.appwidget.action.APPWIDGET_UPDATE\" />\n"
+              "            </intent-filter>\n"
+              "            <meta-data android:name=\"android.appwidget.provider\"\n"
+              "                android:resource=\"@xml/today_widget_info\" />\n"
+              "        </receiver>\n"
+          )
+          if "TodayWidgetProvider" not in manifest:
+              manifest = manifest.replace("</application>", receiver_block + "    </application>")
+
+          with open(manifest_path, "w") as f:
+              f.write(manifest)
+          print("manifest patched")
+          '
+
       - name: Instaleaza dependintele
         run: flutter pub get
 

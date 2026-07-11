@@ -17,11 +17,11 @@ class BillCard extends StatelessWidget {
   String get _settledLabel {
     switch (item.category) {
       case BillCategory.bill:
-        return 'Platita';
+        return 'Paid';
       case BillCategory.income:
-        return 'Primit';
-      case BillCategory.wanted:
-        return 'Cumparat';
+        return 'Received';
+      case BillCategory.shopping:
+        return 'Bought';
     }
   }
 
@@ -42,10 +42,10 @@ class BillCard extends StatelessWidget {
         subtitle: item.isSettled
             ? Text(_settledLabel)
             : item.dueDate != null
-                ? Text('Scadent: ${item.dueDate!.day}/${item.dueDate!.month}/${item.dueDate!.year}')
+                ? Text('Due: ${item.dueDate!.day}/${item.dueDate!.month}/${item.dueDate!.year}')
                 : null,
         trailing: Text(
-          '${item.amount.toStringAsFixed(2)} lei',
+          '${item.amount.toStringAsFixed(2)} RON',
           style: Theme.of(context).textTheme.titleSmall,
         ),
       ),

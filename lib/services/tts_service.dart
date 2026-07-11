@@ -1,8 +1,8 @@
 import 'package:flutter_tts/flutter_tts.dart';
 
-/// Wrapper simplu peste text-to-speech, folosit pentru citirea cu voce
-/// a notitelor/to-do-urilor - la cerere (buton in card) sau cand userul
-/// deschide aplicatia dintr-o notificare.
+/// Simple wrapper around text-to-speech, used to read notes/to-dos aloud
+/// on request (button on the card) or when the user opens the app from
+/// a notification.
 class TtsService {
   TtsService._();
   static final TtsService instance = TtsService._();
@@ -12,7 +12,7 @@ class TtsService {
 
   Future<void> _ensureInit() async {
     if (_initialized) return;
-    await _tts.setLanguage('ro-RO');
+    await _tts.setLanguage('en-US');
     await _tts.setSpeechRate(0.45);
     _initialized = true;
   }

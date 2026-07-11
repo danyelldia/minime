@@ -9,6 +9,8 @@ class NoteTaskCard extends StatelessWidget {
   final PriorityTag? priorityTag;
   final VoidCallback onTap;
   final VoidCallback? onToggleDone;
+  final int subtaskDone;
+  final int subtaskTotal;
 
   const NoteTaskCard({
     super.key,
@@ -16,6 +18,8 @@ class NoteTaskCard extends StatelessWidget {
     required this.priorityTag,
     required this.onTap,
     this.onToggleDone,
+    this.subtaskDone = 0,
+    this.subtaskTotal = 0,
   });
 
   @override
@@ -47,12 +51,28 @@ class NoteTaskCard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              task.title,
-                              style: TextStyle(
-                                decoration: task.isDone ? TextDecoration.lineThrough : null,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            Row(
+                              children: [
+                                if (task.isUrgent)
+                                  const Padding(
+                                    padding: EdgeInsets.only(right: 4),
+                                    child: Icon(Icons.bolt_rounded, size: 16, color: Colors.orange),
+                                  ),
+                                if (task.isImportant)
+                                  const Padding(
+                                    padding: EdgeInsets.only(right: 4),
+                                    child: Icon(Icons.star_rounded, size: 16, color: Colors.amber),
+                                  ),
+                                Expanded(
+                                  child: Text(
+                                    task.title,
+                                    style: TextStyle(
+                                      decoration: task.isDone ? TextDecoration.lineThrough : null,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                             if (task.description != null && task.description!.isNotEmpty)
                               Padding(
@@ -61,6 +81,14 @@ class NoteTaskCard extends StatelessWidget {
                                   task.description!,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ),
+                            if (subtaskTotal > 0)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  '$subtaskDone/$subtaskTotal subtasks done',
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               ),
@@ -80,7 +108,7 @@ class NoteTaskCard extends StatelessWidget {
                                 if (task.durationMinutes != null)
                                   Chip(
                                     avatar: const Icon(Icons.schedule, size: 14),
-                                    label: Text('${task.durationMinutes} min', style: const TextStyle(fontSize: 11)),
+                                    label: Text(_durationLabel(task), style: const TextStyle(fontSize: 11)),
                                     visualDensity: VisualDensity.compact,
                                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
@@ -90,12 +118,29 @@ class NoteTaskCard extends StatelessWidget {
                                     label: Text(
                                       '${task.reminderTime!.hour.toString().padLeft(2, '0')}:'
                                       '${task.reminderTime!.minute.toString().padLeft(2, '0')}'
-                                      '${task.recurrenceRule == 'DAILY' ? ' zilnic' : ''}',
+                                      '${task.recurrenceRule == 'DAILY' ? ' daily' : ''}',
                                       style: const TextStyle(fontSize: 11),
                                     ),
                                     visualDensity: VisualDensity.compact,
                                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
+                                if (task.hasLocation)
+                                  Chip(
+                                    avatar: const Icon(Icons.place_rounded, size: 14),
+                                    label: Text(
+                                      task.locationName?.isNotEmpty == true
+                                          ? task.locationName!
+                                          : 'Place',
+                                      style: const TextStyle(fontSize: 11),
+                                    ),
+                                    visualDensity: VisualDensity.compact,
+                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                ...task.tags.map((t) => Chip(
+                                      label: Text(t, style: const TextStyle(fontSize: 11)),
+                                      visualDensity: VisualDensity.compact,
+                                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    )),
                               ],
                             ),
                           ],
@@ -103,7 +148,7 @@ class NoteTaskCard extends StatelessWidget {
                       ),
                       IconButton(
                         icon: const Icon(Icons.volume_up_rounded, size: 20),
-                        tooltip: 'Citeste cu voce',
+                        tooltip: 'Read aloud',
                         onPressed: () {
                           final text = task.description != null && task.description!.isNotEmpty
                               ? '${task.title}. ${task.description}'
@@ -120,5 +165,20 @@ class NoteTaskCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _durationLabel(NoteTask task) {
+    final minutes = task.durationMinutes!;
+    final unit = task.durationUnit ?? 'min';
+    final display = minutesToDisplay(minutes, unit);
+    final rounded = display == display.roundToDouble() ? display.toInt().toString() : display.toStringAsFixed(1);
+    switch (unit) {
+      case 'day':
+        return '$rounded d';
+      case 'hour':
+        return '$rounded h';
+      default:
+        return '$rounded min';
+    }
   }
 }

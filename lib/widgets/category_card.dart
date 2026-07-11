@@ -34,7 +34,7 @@ class CategoryCard extends StatelessWidget {
               Text(category.name, style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 4),
               Text(
-                '$noteCount notite/to-do',
+                '$noteCount notes/to-dos',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],

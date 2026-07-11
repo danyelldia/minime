@@ -1,12 +1,19 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/note_task.dart';
 import '../providers/note_task_provider.dart';
 import '../providers/priority_tag_provider.dart';
 import '../utils/priority_engine.dart';
 import '../widgets/note_card.dart';
+import '../widgets/quick_add_sheet.dart';
 import 'note_edit_screen.dart';
+import 'pomodoro_screen.dart';
+
+enum _Mood { normal, urgent, lazy, random, movie }
 
 class TodayScreen extends StatefulWidget {
   const TodayScreen({super.key});
@@ -20,6 +27,8 @@ class _TodayScreenState extends State<TodayScreen> {
   int _availableMinutes = 240;
   bool _loadedPrefs = false;
   late final TextEditingController _minutesController;
+  _Mood _mood = _Mood.normal;
+  NoteTask? _randomPick;
 
   @override
   void initState() {
@@ -52,6 +61,14 @@ class _TodayScreenState extends State<TodayScreen> {
     super.dispose();
   }
 
+  void _pickRandom(List<NoteTask> pool) {
+    if (pool.isEmpty) {
+      setState(() => _randomPick = null);
+      return;
+    }
+    setState(() => _randomPick = pool[Random().nextInt(pool.length)]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final taskProvider = context.watch<NoteTaskProvider>();
@@ -61,8 +78,24 @@ class _TodayScreenState extends State<TodayScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    final allPending = taskProvider.pendingTodos;
+
+    List<NoteTask> poolForMood;
+    switch (_mood) {
+      case _Mood.urgent:
+        poolForMood = allPending.where((t) => t.isUrgent).toList();
+        break;
+      case _Mood.lazy:
+        poolForMood = allPending
+            .where((t) => t.durationMinutes == null || t.durationMinutes! <= 15)
+            .toList();
+        break;
+      default:
+        poolForMood = allPending;
+    }
+
     final plan = buildDailyPlan(
-      pendingTodos: taskProvider.pendingTodos,
+      pendingTodos: poolForMood,
       tags: tagProvider.tags,
       availableMinutes: _availableMinutes,
     );
@@ -70,107 +103,213 @@ class _TodayScreenState extends State<TodayScreen> {
     final remaining = _availableMinutes - plan.minutesUsed;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Azi')),
+      appBar: AppBar(title: const Text('Today')),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => showQuickAddSheet(context, initialKind: QuickAddKind.task),
+        child: const Icon(Icons.add_rounded),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  const Icon(Icons.timer_rounded),
-                  const SizedBox(width: 12),
-                  const Expanded(child: Text('Timp disponibil azi (minute):')),
-                  SizedBox(
-                    width: 70,
-                    child: TextField(
-                      controller: _minutesController,
-                      keyboardType: TextInputType.number,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ChoiceChip(
+                label: const Text('Planned'),
+                selected: _mood == _Mood.normal,
+                onSelected: (_) => setState(() => _mood = _Mood.normal),
+              ),
+              ChoiceChip(
+                label: const Text('Something urgent'),
+                selected: _mood == _Mood.urgent,
+                onSelected: (_) => setState(() => _mood = _Mood.urgent),
+              ),
+              ChoiceChip(
+                label: const Text('Feeling lazy'),
+                selected: _mood == _Mood.lazy,
+                onSelected: (_) => setState(() => _mood = _Mood.lazy),
+              ),
+              ChoiceChip(
+                label: const Text('Surprise me'),
+                selected: _mood == _Mood.random,
+                onSelected: (_) {
+                  setState(() => _mood = _Mood.random);
+                  _pickRandom(allPending);
+                },
+              ),
+              ChoiceChip(
+                label: const Text('Watch a movie'),
+                selected: _mood == _Mood.movie,
+                onSelected: (_) => setState(() => _mood = _Mood.movie),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_mood == _Mood.movie) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    const Icon(Icons.local_movies_rounded, size: 40),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Sounds like a plan. Everything else can wait - enjoy your movie!',
                       textAlign: TextAlign.center,
-                      decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
-                      onSubmitted: (v) {
-                        final parsed = int.tryParse(v.trim());
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ] else if (_mood == _Mood.random) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('How about this?', style: Theme.of(context).textTheme.titleMedium),
+                    const SizedBox(height: 8),
+                    if (_randomPick == null)
+                      const Text('Nothing pending right now - nice!')
+                    else
+                      NoteTaskCard(
+                        task: _randomPick!,
+                        priorityTag: tagProvider.byId(_randomPick!.priorityTagId),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => NoteEditScreen(existing: _randomPick)),
+                        ),
+                        onToggleDone: () => taskProvider.toggleDone(_randomPick!),
+                      ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => _pickRandom(allPending),
+                      icon: const Icon(Icons.casino_rounded),
+                      label: const Text('Pick another'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ] else ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.timer_rounded),
+                    const SizedBox(width: 12),
+                    const Expanded(child: Text('Time available today (minutes):')),
+                    SizedBox(
+                      width: 70,
+                      child: TextField(
+                        controller: _minutesController,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                        onSubmitted: (v) {
+                          final parsed = int.tryParse(v.trim());
+                          if (parsed != null && parsed >= 0) _saveMinutes(parsed);
+                        },
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.check_rounded),
+                      onPressed: () {
+                        final parsed = int.tryParse(_minutesController.text.trim());
                         if (parsed != null && parsed >= 0) _saveMinutes(parsed);
                       },
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.check_rounded),
-                    onPressed: () {
-                      final parsed = int.tryParse(_minutesController.text.trim());
-                      if (parsed != null && parsed >= 0) _saveMinutes(parsed);
-                    },
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Folosit: ${plan.minutesUsed} / $_availableMinutes min '
-            '(${remaining >= 0 ? remaining : 0} min ramase)',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Poti face azi (${plan.scheduled.length})',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          if (plan.scheduled.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text('Nimic incadrat inca. Seteaza durate pe to-do-uri.'),
-            )
-          else
-            ...plan.scheduled.map((t) => NoteTaskCard(
-                  task: t,
-                  priorityTag: tagProvider.byId(t.priorityTagId),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => NoteEditScreen(existing: t)),
-                  ),
-                  onToggleDone: () => taskProvider.toggleDone(t),
-                )),
-          if (plan.leftover.isNotEmpty) ...[
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Text(
-              'Nu incap azi (${plan.leftover.length})',
+              'Used: ${plan.minutesUsed} / $_availableMinutes min '
+              '(${remaining >= 0 ? remaining : 0} min left)',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'You can do today (${plan.scheduled.length})',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
-            ...plan.leftover.map((t) => NoteTaskCard(
-                  task: t,
-                  priorityTag: tagProvider.byId(t.priorityTagId),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => NoteEditScreen(existing: t)),
-                  ),
-                  onToggleDone: () => taskProvider.toggleDone(t),
-                )),
-          ],
-          if (plan.noDuration.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            Text(
-              'Fara durata setata (${plan.noDuration.length})',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Seteaza o durata pe aceste to-do-uri ca sa fie incluse in calcul.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 8),
-            ...plan.noDuration.map((t) => NoteTaskCard(
-                  task: t,
-                  priorityTag: tagProvider.byId(t.priorityTagId),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => NoteEditScreen(existing: t)),
-                  ),
-                  onToggleDone: () => taskProvider.toggleDone(t),
-                )),
+            if (plan.scheduled.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Text('Nothing scheduled yet. Set durations on your to-dos.'),
+              )
+            else
+              ...plan.scheduled.map((t) => Dismissible(
+                    key: ValueKey('focus_${t.id}'),
+                    direction: DismissDirection.endToStart,
+                    confirmDismiss: (_) async {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => PomodoroScreen(task: t)),
+                      );
+                      return false;
+                    },
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      child: const Icon(Icons.timer_rounded),
+                    ),
+                    child: NoteTaskCard(
+                      task: t,
+                      priorityTag: tagProvider.byId(t.priorityTagId),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => NoteEditScreen(existing: t)),
+                      ),
+                      onToggleDone: () => taskProvider.toggleDone(t),
+                    ),
+                  )),
+            if (plan.leftover.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Text(
+                "Doesn't fit today (${plan.leftover.length})",
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              ...plan.leftover.map((t) => NoteTaskCard(
+                    task: t,
+                    priorityTag: tagProvider.byId(t.priorityTagId),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => NoteEditScreen(existing: t)),
+                    ),
+                    onToggleDone: () => taskProvider.toggleDone(t),
+                  )),
+            ],
+            if (plan.noDuration.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Text(
+                'No duration set (${plan.noDuration.length})',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Set a duration on these to-dos to include them in the plan.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 8),
+              ...plan.noDuration.map((t) => NoteTaskCard(
+                    task: t,
+                    priorityTag: tagProvider.byId(t.priorityTagId),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => NoteEditScreen(existing: t)),
+                    ),
+                    onToggleDone: () => taskProvider.toggleDone(t),
+                  )),
+            ],
           ],
         ],
       ),

@@ -1,0 +1,32 @@
+// Remember to set a package in order for home_widget to find the Provider.
+// This placeholder is replaced by the build workflow with MiniMe's real
+// application package before compilation.
+package __PACKAGE__
+
+import android.appwidget.AppWidgetManager
+import android.content.Context
+import android.content.SharedPreferences
+import android.widget.RemoteViews
+import es.antonborri.home_widget.HomeWidgetProvider
+
+/// Shows how many to-dos are pending today and the next one up. Data is
+/// pushed from Dart via HomeWidgetService whenever the app starts,
+/// resumes, or the task list changes.
+class TodayWidgetProvider : HomeWidgetProvider() {
+    override fun onUpdate(
+        context: Context,
+        appWidgetManager: AppWidgetManager,
+        appWidgetIds: IntArray,
+        widgetData: SharedPreferences
+    ) {
+        appWidgetIds.forEach { widgetId ->
+            val views = RemoteViews(context.packageName, R.layout.today_widget_layout).apply {
+                val count = widgetData.getInt("minime_pending_count", 0)
+                val nextTitle = widgetData.getString("minime_next_title", "Open MiniMe") ?: "Open MiniMe"
+                setTextViewText(R.id.widget_count, "$count pending today")
+                setTextViewText(R.id.widget_next, nextTitle)
+            }
+            appWidgetManager.updateAppWidget(widgetId, views)
+        }
+    }
+}

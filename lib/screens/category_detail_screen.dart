@@ -6,6 +6,7 @@ import '../providers/category_provider.dart';
 import '../providers/note_task_provider.dart';
 import '../providers/priority_tag_provider.dart';
 import '../widgets/note_card.dart';
+import '../widgets/quick_add_sheet.dart';
 import 'category_edit_screen.dart';
 import 'note_edit_screen.dart';
 
@@ -18,7 +19,7 @@ class CategoryDetailScreen extends StatefulWidget {
 }
 
 class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
-  String? _selectedSubId; // null = toate subcategoriile + categoria principala
+  String? _selectedSubId; // null = main category + all its subcategories
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +29,7 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
 
     final category = categoryProvider.byId(widget.categoryId);
     if (category == null) {
-      return const Scaffold(body: Center(child: Text('Categoria nu mai exista')));
+      return const Scaffold(body: Center(child: Text('This category no longer exists')));
     }
 
     final subcategories = categoryProvider.subcategoriesOf(category.id);
@@ -36,8 +37,9 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
         ? [_selectedSubId!]
         : [category.id, ...subcategories.map((c) => c.id)];
 
-    final tasks =
-        taskProvider.tasks.where((t) => relevantCategoryIds.contains(t.categoryId)).toList();
+    final tasks = _selectedSubId != null
+        ? taskProvider.byCategory(_selectedSubId!)
+        : relevantCategoryIds.expand((id) => taskProvider.byCategory(id)).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -58,13 +60,10 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(
+        onPressed: () => showQuickAddSheet(
           context,
-          MaterialPageRoute(
-            builder: (_) => NoteEditScreen(
-              defaultCategoryId: _selectedSubId ?? category.id,
-            ),
-          ),
+          initialKind: QuickAddKind.task,
+          defaultCategoryId: _selectedSubId ?? category.id,
         ),
         child: const Icon(Icons.add_rounded),
       ),
@@ -76,7 +75,7 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
               spacing: 8,
               children: [
                 ChoiceChip(
-                  label: const Text('Toate'),
+                  label: const Text('All'),
                   selected: _selectedSubId == null,
                   onSelected: (_) => setState(() => _selectedSubId = null),
                 ),
@@ -88,7 +87,7 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
                     )),
                 ActionChip(
                   avatar: const Icon(Icons.add, size: 16),
-                  label: const Text('Subcategorie'),
+                  label: const Text('Subcategory'),
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -99,26 +98,50 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
               ],
             ),
           ),
+          if (_selectedSubId == null && subcategories.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Drag to reorder within a single category (pick one above).',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            ),
           Expanded(
             child: tasks.isEmpty
                 ? Center(
-                    child: Text('Nimic aici inca', style: Theme.of(context).textTheme.bodyMedium),
+                    child: Text('Nothing here yet', style: Theme.of(context).textTheme.bodyMedium),
                   )
-                : ListView.builder(
+                : ReorderableListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: tasks.length,
+                    onReorder: (oldIndex, newIndex) {
+                      final reordered = List<NoteTask>.from(tasks);
+                      if (newIndex > oldIndex) newIndex -= 1;
+                      final moved = reordered.removeAt(oldIndex);
+                      reordered.insert(newIndex, moved);
+                      context.read<NoteTaskProvider>().reorder(reordered);
+                    },
                     itemBuilder: (context, index) {
                       final task = tasks[index];
-                      return NoteTaskCard(
-                        task: task,
-                        priorityTag: tagProvider.byId(task.priorityTagId),
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => NoteEditScreen(existing: task)),
+                      return Padding(
+                        key: ValueKey(task.id),
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: NoteTaskCard(
+                          task: task,
+                          priorityTag: tagProvider.byId(task.priorityTagId),
+                          subtaskDone: taskProvider.doneSubtasksCount(task.id),
+                          subtaskTotal: taskProvider.subtasksOf(task.id).length,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => NoteEditScreen(existing: task)),
+                          ),
+                          onToggleDone: task.type == ItemType.todo
+                              ? () => taskProvider.toggleDone(task)
+                              : null,
                         ),
-                        onToggleDone: task.type == ItemType.todo
-                            ? () => taskProvider.toggleDone(task)
-                            : null,
                       );
                     },
                   ),
@@ -132,12 +155,12 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Stergi categoria?'),
+        title: const Text('Delete this category?'),
         content: const Text(
-          'Se sterg si subcategoriile si toate notitele/to-do-urile din ele.',
+          'This also deletes its subcategories and all notes/to-dos in them.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Anuleaza')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
@@ -145,7 +168,7 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
               Navigator.pop(ctx);
               Navigator.pop(context);
             },
-            child: const Text('Sterge'),
+            child: const Text('Delete'),
           ),
         ],
       ),
