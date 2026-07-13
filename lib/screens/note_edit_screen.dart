@@ -44,6 +44,7 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
   double? _locationLat;
   double? _locationLng;
   bool _fetchingLocation = false;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -138,9 +139,28 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
   }
 
   Future<void> _save() async {
+    // Pazeste impotriva dublu-tap / dublu-submit: fara asta, daca
+    // programarea notificarii dura putin (sau arunca o eroare), userul
+    // apasa Save a doua oara si se creau 2 task-uri identice.
+    if (_saving) return;
     final title = _titleController.text.trim();
     if (title.isEmpty) return;
 
+    setState(() => _saving = true);
+    try {
+      await _doSave(title);
+    } catch (e, st) {
+      debugPrint('NoteEditScreen._save error: $e\n$st');
+      if (mounted) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not save - please try again.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _doSave(String title) async {
     final rawDuration = num.tryParse(_durationController.text.trim());
     final duration = rawDuration != null ? durationToMinutes(rawDuration, _durationUnit) : null;
     final desc = _descController.text.trim();
@@ -518,7 +538,16 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
             ),
           ],
           const SizedBox(height: 32),
-          FilledButton(onPressed: _save, child: const Text('Save')),
+          FilledButton(
+            onPressed: _saving ? null : _save,
+            child: _saving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Save'),
+          ),
         ],
       ),
     );
