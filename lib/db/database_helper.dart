@@ -84,19 +84,14 @@ class DatabaseHelper {
         FOREIGN KEY (categoryId) REFERENCES categories (id),
         FOREIGN KEY (priorityTagId) REFERENCES priority_tags (id),
         FOREIGN KEY (parentTaskId) REFERENCES note_tasks (id)
-
       )
     ''');
 
     await db.execute('''
-      CREATE TABLE bill_items  (
+      CREATE TABLE bill_items (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         amount REAL NOT NULL,
-        category TEXT NOT NULL,
-        dueDate TEXT,
-        isSettled INTEGER NOT NULL DEFAULT 0,
-        isSettled TEXT,
         category TEXT NOT NULL,
         dueDate TEXT,
         isSettled INTEGER NOT NULL DEFAULT 0,
