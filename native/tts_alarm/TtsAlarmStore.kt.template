@@ -5,10 +5,15 @@ package __PACKAGE__
 import android.content.Context
 import org.json.JSONObject
 
-/// Persists scheduled native TTS alarms (id -> title + trigger time) in
-/// SharedPreferences, since AlarmManager alarms are wiped by the OS on
-/// every device reboot. TtsAlarmBootReceiver reads this store after boot
-/// to re-arm any reminders that are still in the future.
+/// One persisted native TTS alarm: the task title (kept for reference),
+/// the full spoken message (name + phrase + title, composed on the Dart
+/// side), and the trigger time.
+data class TtsAlarmEntry(val title: String, val message: String, val triggerAtMillis: Long)
+
+/// Persists scheduled native TTS alarms (id -> title/message + trigger
+/// time) in SharedPreferences, since AlarmManager alarms are wiped by the
+/// OS on every device reboot. TtsAlarmBootReceiver reads this store after
+/// boot to re-arm any reminders that are still in the future.
 object TtsAlarmStore {
     private const val PREFS_NAME = "minime_tts_alarms"
     private const val KEY_DATA = "alarms_json"
@@ -17,10 +22,11 @@ object TtsAlarmStore {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     @Synchronized
-    fun put(context: Context, id: Int, title: String, triggerAtMillis: Long) {
+    fun put(context: Context, id: Int, title: String, message: String, triggerAtMillis: Long) {
         val json = readJson(context)
         val entry = JSONObject()
         entry.put("title", title)
+        entry.put("message", message)
         entry.put("triggerAtMillis", triggerAtMillis)
         json.put(id.toString(), entry)
         writeJson(context, json)
@@ -34,17 +40,18 @@ object TtsAlarmStore {
     }
 
     @Synchronized
-    fun all(context: Context): Map<Int, Pair<String, Long>> {
+    fun all(context: Context): Map<Int, TtsAlarmEntry> {
         val json = readJson(context)
-        val result = mutableMapOf<Int, Pair<String, Long>>()
+        val result = mutableMapOf<Int, TtsAlarmEntry>()
         val keys = json.keys()
         while (keys.hasNext()) {
             val key = keys.next()
             val entry = json.optJSONObject(key) ?: continue
             val title = entry.optString("title", "")
+            val message = entry.optString("message", title)
             val trigger = entry.optLong("triggerAtMillis", 0L)
             val id = key.toIntOrNull() ?: continue
-            result[id] = title to trigger
+            result[id] = TtsAlarmEntry(title, message, trigger)
         }
         return result
     }
@@ -62,4 +69,3 @@ object TtsAlarmStore {
         prefs(context).edit().putString(KEY_DATA, json.toString()).apply()
     }
 }
-
