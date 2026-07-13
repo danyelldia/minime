@@ -166,6 +166,13 @@ class NotificationService {
         channelDescription: _channelDesc,
         importance: Importance.high,
         priority: Priority.high,
+        // Trateaza reminder-ul ca pe o alarma: apare peste ecranul de
+        // blocare (nu doar "ascuns, deblocheaza ca sa vezi"), face heads-up
+        // (peek) chiar daca telefonul e blocat, si porneste ecranul daca
+        // era stins - la fel ca orice alarma standard de pe telefon.
+        category: AndroidNotificationCategory.alarm,
+        visibility: NotificationVisibility.public,
+        fullScreenIntent: true,
         actions: [
           AndroidNotificationAction(actionDone, 'Done'),
           AndroidNotificationAction(actionSnooze, 'Snooze 15m'),
