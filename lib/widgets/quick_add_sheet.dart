@@ -44,6 +44,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
   late QuickAddKind _kind;
   final _textController = TextEditingController();
   final _amountController = TextEditingController();
+  bool _submitting = false;
 
   @override
   void initState() {
@@ -72,9 +73,27 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
   }
 
   Future<void> _submit() async {
+    // Pazeste impotriva dublu-tap (ex. cand programarea notificarii dureaza
+    // putin), care altfel ar crea 2 intrari identice.
+    if (_submitting) return;
     final text = _textController.text.trim();
     if (text.isEmpty) return;
 
+    setState(() => _submitting = true);
+    try {
+      await _doSubmit(text);
+    } catch (e, st) {
+      debugPrint('QuickAddSheet._submit error: $e\n$st');
+      if (mounted) {
+        setState(() => _submitting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not save - please try again.')),
+        );
+      }
+    }
+  }
+
+  Future<void> _doSubmit(String text) async {
     switch (_kind) {
       case QuickAddKind.note:
         await context.read<NoteTaskProvider>().addTask(NoteTask(
@@ -177,7 +196,16 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
             ),
           ],
           const SizedBox(height: 20),
-          FilledButton(onPressed: _submit, child: const Text('Add')),
+          FilledButton(
+            onPressed: _submitting ? null : _submit,
+            child: _submitting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Add'),
+          ),
         ],
       ),
     );
