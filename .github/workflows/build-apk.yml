@@ -171,8 +171,9 @@ jobs:
                   "                \"scheduleTtsAlarm\" -> {\n"
                   "                    val id = (call.argument<Any>(\"id\") as? Number)?.toInt() ?: 0\n"
                   "                    val title = call.argument<String>(\"title\") ?: \"\"\n"
+                  "                    val message = call.argument<String>(\"message\") ?: title\n"
                   "                    val triggerAtMillis = (call.argument<Any>(\"triggerAtMillis\") as? Number)?.toLong() ?: 0L\n"
-                  "                    TtsAlarmScheduler.schedule(applicationContext, id, title, triggerAtMillis)\n"
+                  "                    TtsAlarmScheduler.schedule(applicationContext, id, title, message, triggerAtMillis)\n"
                   "                    result.success(null)\n"
                   "                }\n"
                   "                \"cancelTtsAlarm\" -> {\n"
@@ -180,6 +181,7 @@ jobs:
                   "                    TtsAlarmScheduler.cancel(applicationContext, id)\n"
                   "                    result.success(null)\n"
                   "                }\n"
+                  "                else -> result.notImplemented()\n"
                   "            }\n"
                   "        }\n"
                   "    }\n"
@@ -300,4 +302,3 @@ jobs:
           tag_name: build-${{ github.run_number }}
           name: MiniMe build ${{ github.run_number }}
           files: build/app/outputs/flutter-apk/app-release.apk
-
