@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../models/category.dart';
 import '../providers/category_provider.dart';
 import '../providers/note_task_provider.dart';
 import '../widgets/category_card.dart';
@@ -15,7 +16,12 @@ class NotesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final categoryProvider = context.watch<CategoryProvider>();
     final taskProvider = context.watch<NoteTaskProvider>();
-    final mainCategories = categoryProvider.mainCategories;
+    // "Quick Notes" e o categorie reala (ca sa poata fi aleasa din
+    // dropdown-ul de categorie la editare), dar nu apare aici ca "a 4-a
+    // categorie mare" - notitele rapide se vad prin link-ul dedicat de pe
+    // Dashboard.
+    final mainCategories =
+        categoryProvider.mainCategories.where((c) => c.id != quickNotesCategoryId).toList();
 
     return Scaffold(
       appBar: AppBar(
