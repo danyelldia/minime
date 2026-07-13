@@ -5,9 +5,11 @@ package __PACKAGE__
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import java.util.Locale
@@ -32,7 +34,33 @@ class TtsAlarmReceiver : BroadcastReceiver() {
         }
         if (message.isNullOrBlank()) return
 
+        // Pe multe telefoane (inclusiv ColorOS/Oppo), cand ecranul e stins
+        // si telefonul e blocat, CPU-ul poate readormi inainte ca
+        // TextToSpeech (care se initializeaza asincron) sa apuce sa
+        // vorbeasca - motorul TTS ramane "tacut" desi alarma a sunat.
+        // Tinem explicit un partial wake lock cat timp vorbim, ca sa nu
+        // pateasca asta.
+        val powerManager = context.applicationContext.getSystemService(Context.POWER_SERVICE) as? PowerManager
+        val wakeLock = powerManager?.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "MiniMe:TtsAlarmWakeLock",
+        )
+        try {
+            wakeLock?.acquire(20_000L)
+        } catch (e: Exception) {
+            // ignore - mai bine incercam sa vorbim oricum decat sa crapam aici
+        }
+
         val pendingResult = goAsync()
+        fun finish() {
+            try {
+                if (wakeLock?.isHeld == true) wakeLock.release()
+            } catch (e: Exception) {
+                // ignore
+            }
+            pendingResult.finish()
+        }
+
         var tts: TextToSpeech? = null
         tts = TextToSpeech(context.applicationContext) { status ->
             if (status == TextToSpeech.SUCCESS) {
@@ -45,22 +73,28 @@ class TtsAlarmReceiver : BroadcastReceiver() {
 
                     override fun onDone(utteranceId: String?) {
                         tts?.shutdown()
-                        pendingResult.finish()
+                        finish()
                     }
 
                     @Deprecated("Deprecated in base class, still required to override")
                     override fun onError(utteranceId: String?) {
                         tts?.shutdown()
-                        pendingResult.finish()
+                        finish()
                     }
                 })
+                // Foloseste canalul de volum al alarmelor (nu notificari/
+                // media), ca vocea sa se auda si daca telefonul e pe
+                // silentios/Do Not Disturb sau volumul media e la 0 - la
+                // fel ca orice alarma standard de pe telefon.
+                val params = Bundle()
+                params.putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_ALARM)
                 // Mica pauza dupa bip-ul notificarii vizuale, ca vocea sa nu
                 // se suprapuna peste sunetul notificarii.
                 Handler(Looper.getMainLooper()).postDelayed({
-                    tts?.speak(message, TextToSpeech.QUEUE_FLUSH, Bundle(), "minime_tts_alarm")
+                    tts?.speak(message, TextToSpeech.QUEUE_FLUSH, params, "minime_tts_alarm")
                 }, 700)
             } else {
-                pendingResult.finish()
+                finish()
             }
         }
     }
