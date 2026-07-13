@@ -75,6 +75,22 @@ List<Category> defaultMainCategories() => [
       ),
     ];
 
+/// Id-ul special al categoriei "Quick Notes" - unde ajung implicit
+/// notitele scrise rapid din Dashboard. Este o categorie reala (userul o
+/// poate alege si din dropdown-ul de categorie ca sa mute o notita in
+/// alta parte), dar e ascunsa din grila celor 3 categorii mari de pe
+/// ecranul Notes, ca sa nu para "a 4-a categorie mare".
+const String quickNotesCategoryId = 'quick_notes';
+
+/// Categoria speciala pentru notite rapide, adaugata automat la prima
+/// rulare (sau la upgrade pentru userii existenti).
+Category quickNotesCategory() => const Category(
+      id: quickNotesCategoryId,
+      name: 'Quick Notes',
+      icon: Icons.flash_on_rounded,
+      color: Color(0xFFFFA000),
+    );
+
 /// Iconite disponibile la crearea unei categorii/subcategorii noi.
 const List<IconData> availableCategoryIcons = [
   Icons.home_rounded,
