@@ -6,18 +6,23 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import java.util.Locale
 
-/// Fires when a scheduled MiniMe reminder alarm goes off. Speaks the
-/// task's title aloud using Android's built-in TextToSpeech engine, so the
-/// reminder is heard even if the user never opens the notification. This
-/// receiver is pure Kotlin (no Dart/Flutter engine involved), so it works
-/// reliably even when the app process was previously killed.
+/// Fires when a scheduled MiniMe reminder alarm goes off. Speaks a
+/// personalized message (name + a phrase that varies by task urgency +
+/// the task title, composed on the Dart side) aloud using Android's
+/// built-in TextToSpeech engine, so the reminder is heard even if the
+/// user never opens the notification. This receiver is pure Kotlin (no
+/// Dart/Flutter engine involved), so it works reliably even when the app
+/// process was previously killed.
 class TtsAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val title = intent.getStringExtra("tts_title")
+        val message = intent.getStringExtra("tts_message")?.takeIf { it.isNotBlank() } ?: title
         val id = intent.getIntExtra("tts_id", -1)
         // A alarma tocmai a sunat, deci nu mai e "pending" - o scoatem din
         // storage-ul persistent ca sa nu fie reprogramata gresit dupa un
@@ -25,13 +30,16 @@ class TtsAlarmReceiver : BroadcastReceiver() {
         if (id != -1) {
             TtsAlarmStore.remove(context, id)
         }
-        if (title.isNullOrBlank()) return
+        if (message.isNullOrBlank()) return
 
         val pendingResult = goAsync()
         var tts: TextToSpeech? = null
         tts = TextToSpeech(context.applicationContext) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 tts?.language = Locale.getDefault()
+                // Putin mai rar decat viteza normala (1.0), ca sa se
+                // inteleaga clar titlul task-ului, nu "pe repede inainte".
+                tts?.setSpeechRate(0.85f)
                 tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
                     override fun onStart(utteranceId: String?) {}
 
@@ -46,7 +54,11 @@ class TtsAlarmReceiver : BroadcastReceiver() {
                         pendingResult.finish()
                     }
                 })
-                tts?.speak(title, TextToSpeech.QUEUE_FLUSH, Bundle(), "minime_tts_alarm")
+                // Mica pauza dupa bip-ul notificarii vizuale, ca vocea sa nu
+                // se suprapuna peste sunetul notificarii.
+                Handler(Looper.getMainLooper()).postDelayed({
+                    tts?.speak(message, TextToSpeech.QUEUE_FLUSH, Bundle(), "minime_tts_alarm")
+                }, 700)
             } else {
                 pendingResult.finish()
             }
