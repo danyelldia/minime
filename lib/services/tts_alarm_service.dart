@@ -13,11 +13,17 @@ class TtsAlarmService {
 
   static const MethodChannel _channel = MethodChannel('com.danyell.minime/tts_alarm');
 
-  Future<void> schedule({required int id, required String title, required DateTime when}) async {
+  Future<void> schedule({
+    required int id,
+    required String title,
+    required String message,
+    required DateTime when,
+  }) async {
     try {
       await _channel.invokeMethod('scheduleTtsAlarm', {
         'id': id,
         'title': title,
+        'message': message,
         'triggerAtMillis': when.millisecondsSinceEpoch,
       });
     } catch (e) {
@@ -34,4 +40,3 @@ class TtsAlarmService {
     }
   }
 }
-
