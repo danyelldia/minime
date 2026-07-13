@@ -77,6 +77,31 @@ Future<void> _logHistory(String taskId, String action, {int? snoozeMinutes}) asy
   });
 }
 
+/// Citeste numele userului direct din DB (fara Provider, ca acest serviciu
+/// nu are BuildContext) - folosit ca sa personalizam mesajul vorbit.
+Future<String> _userName() async {
+  final db = await DatabaseHelper.instance.database;
+  final rows = await db.query('user_profile', where: 'id = ?', whereArgs: ['me']);
+  if (rows.isEmpty) return '';
+  return (rows.first['name'] as String?)?.trim() ?? '';
+}
+
+/// Construieste fraza vorbita: nume (daca exista) + o formulare care
+/// variaza dupa urgenta/importanta task-ului + titlul. Ex: "Daniel, this
+/// is urgent, you must do: water the plants".
+String composeSpokenMessage(NoteTask task, String name) {
+  final String phrase;
+  if (task.isUrgent) {
+    phrase = 'this is urgent, you must do';
+  } else if (task.isImportant) {
+    phrase = 'you have an important task';
+  } else {
+    phrase = 'you have a task pending';
+  }
+  final namePart = name.trim().isEmpty ? '' : '${name.trim()}, ';
+  return '$namePart$phrase: ${task.title}';
+}
+
 /// Programeaza si anuleaza notificari locale pentru to-do-uri, cu suport
 /// pentru recurenta zilnica si actiuni: Done / Snooze 15m / Not azi / Maine.
 ///
@@ -174,27 +199,60 @@ class NotificationService {
       scheduled = daily ? scheduled.add(const Duration(days: 1)) : now.add(const Duration(minutes: 1));
     }
 
-    await _plugin.zonedSchedule(
-      id,
-      task.title,
-      (task.description != null && task.description!.isNotEmpty)
-          ? task.description!
-          : 'Reminder MiniMe',
-      scheduled,
-      NotificationDetails(android: _androidDetails(), iOS: const DarwinNotificationDetails()),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: daily ? DateTimeComponents.time : null,
-      payload: task.id,
-    );
+    final body = (task.description != null && task.description!.isNotEmpty)
+        ? task.description!
+        : 'Reminder MiniMe';
+
+    // IMPORTANT: pe multe telefoane (inclusiv ColorOS/Oppo) permisiunea de
+    // "alarme exacte" nu e acordata automat pe Android 12+, iar in acel caz
+    // zonedSchedule arunca o exceptie DIRECT AICI, inainte sa apuce sa
+    // programeze ceva. Daca nu am prinde exceptia, ea s-ar propaga pana in
+    // ecranul de Save (unde e apelat scheduleReminder), blocand navigarea
+    // inapoi si dand impresia ca "nu s-a salvat" - iar userul care apasa
+    // Save a doua oara ajunge sa creeze un task duplicat. De-aia incercam
+    // intai exact, si daca esueaza cadem pe inexact, ca notificarea vizuala
+    // sa apara oricum (poate cu o mica intarziere), fara sa stricam salvarea.
+    try {
+      await _plugin.zonedSchedule(
+        id,
+        task.title,
+        body,
+        scheduled,
+        NotificationDetails(android: _androidDetails(), iOS: const DarwinNotificationDetails()),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: daily ? DateTimeComponents.time : null,
+        payload: task.id,
+      );
+    } catch (e) {
+      try {
+        await _plugin.zonedSchedule(
+          id,
+          task.title,
+          body,
+          scheduled,
+          NotificationDetails(android: _androidDetails(), iOS: const DarwinNotificationDetails()),
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+          matchDateTimeComponents: daily ? DateTimeComponents.time : null,
+          payload: task.id,
+        );
+      } catch (e2) {
+        // Best-effort: chiar daca notificarea vizuala nu poate fi
+        // programata deloc, alarma vocala nativa de mai jos tot va suna.
+      }
+    }
 
     // Recurenta zilnica nu se poate exprima direct pe alarma nativa (nu are
     // logica de "match time-of-day" ca zonedSchedule), asa ca pentru task-uri
     // DAILY programam doar urmatoarea aparitie; se reprogrameaza automat
     // maine cand notificarea vizuala e reafisata (vezi handleNotificationAction).
+    final name = await _userName();
+    final message = composeSpokenMessage(task, name);
     await TtsAlarmService.instance.schedule(
       id: id,
       title: task.title,
+      message: message,
       when: scheduled,
     );
   }
@@ -206,20 +264,28 @@ class NotificationService {
   /// fie nevoie de alarma nativa.
   Future<void> showLocationReminder(NoteTask task) async {
     final id = _notificationIdFor('loc_${task.id}');
-    await _plugin.show(
-      id,
-      'Near ${task.locationName ?? 'a saved place'}',
-      task.title,
-      NotificationDetails(android: _androidDetails(), iOS: const DarwinNotificationDetails()),
-      payload: task.id,
-    );
-    TtsService.instance.speak(task.title);
+    try {
+      await _plugin.show(
+        id,
+        'Near ${task.locationName ?? 'a saved place'}',
+        task.title,
+        NotificationDetails(android: _androidDetails(), iOS: const DarwinNotificationDetails()),
+        payload: task.id,
+      );
+    } catch (e) {
+      // best-effort - continua oricum cu vocea mai jos.
+    }
+    final name = await _userName();
+    TtsService.instance.speak(composeSpokenMessage(task, name));
   }
 
   Future<void> cancelReminder(String taskId) async {
     final id = _notificationIdFor(taskId);
-    await _plugin.cancel(id);
+    try {
+      await _plugin.cancel(id);
+    } catch (e) {
+      // best-effort
+    }
     await TtsAlarmService.instance.cancel(id);
   }
 }
-
