@@ -21,6 +21,7 @@ class _BillEditScreenState extends State<BillEditScreen> {
   late final TextEditingController _notesController;
   late BillCategory _category;
   DateTime? _dueDate;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -52,9 +53,13 @@ class _BillEditScreenState extends State<BillEditScreen> {
   }
 
   void _save() {
+    // Pazeste impotriva dublu-tap, care ar putea crea 2 intrari identice.
+    if (_saving) return;
     final name = _nameController.text.trim();
     final amount = double.tryParse(_amountController.text.trim().replaceAll(',', '.')) ?? 0;
     if (name.isEmpty) return;
+
+    setState(() => _saving = true);
 
     final provider = context.read<BillProvider>();
     final notes = _notesController.text.trim();
@@ -148,7 +153,7 @@ class _BillEditScreenState extends State<BillEditScreen> {
             ),
           ),
           const SizedBox(height: 32),
-          FilledButton(onPressed: _save, child: const Text('Save')),
+          FilledButton(onPressed: _saving ? null : _save, child: const Text('Save')),
         ],
       ),
     );
