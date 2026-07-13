@@ -12,7 +12,7 @@ class DatabaseHelper {
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
 
-  static const int dbVersion = 2;
+  static const int dbVersion = 3;
 
   Database? _db;
 
@@ -84,14 +84,19 @@ class DatabaseHelper {
         FOREIGN KEY (categoryId) REFERENCES categories (id),
         FOREIGN KEY (priorityTagId) REFERENCES priority_tags (id),
         FOREIGN KEY (parentTaskId) REFERENCES note_tasks (id)
+
       )
     ''');
 
     await db.execute('''
-      CREATE TABLE bill_items (
+      CREATE TABLE bill_items  (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         amount REAL NOT NULL,
+        category TEXT NOT NULL,
+        dueDate TEXT,
+        isSettled INTEGER NOT NULL DEFAULT 0,
+        isSettled TEXT,
         category TEXT NOT NULL,
         dueDate TEXT,
         isSettled INTEGER NOT NULL DEFAULT 0,
@@ -137,6 +142,7 @@ class DatabaseHelper {
     for (final cat in defaultMainCategories()) {
       await db.insert('categories', cat.toMap());
     }
+    await db.insert('categories', quickNotesCategory().toMap());
     for (final tag in defaultPriorityTags()) {
       await db.insert('priority_tags', tag.toMap());
     }
@@ -187,6 +193,16 @@ class DatabaseHelper {
           createdAt TEXT NOT NULL
         )
       ''');
+    }
+
+    if (oldVersion < 3) {
+      // Adauga categoria speciala "Quick Notes" pentru userii care au deja
+      // aplicatia instalata (userii noi o primesc direct din _onCreate).
+      try {
+        await db.insert('categories', quickNotesCategory().toMap());
+      } catch (_) {
+        // exista deja (upgrade rulat de mai multe ori) - ignora.
+      }
     }
   }
 
