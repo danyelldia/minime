@@ -212,6 +212,10 @@ jobs:
               "    <uses-permission android:name=\"android.permission.ACCESS_COARSE_LOCATION\" />\n"
               "    <uses-permission android:name=\"android.permission.SCHEDULE_EXACT_ALARM\" />\n"
               "    <uses-permission android:name=\"android.permission.RECEIVE_BOOT_COMPLETED\" />\n"
+              "    <uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\" />\n"
+              "    <uses-permission android:name=\"android.permission.WAKE_LOCK\" />\n"
+              "    <uses-permission android:name=\"android.permission.USE_FULL_SCREEN_INTENT\" />\n"
+              "    <uses-permission android:name=\"android.permission.DISABLE_KEYGUARD\" />\n"
           )
           if "ACCESS_FINE_LOCATION" not in manifest:
               manifest = manifest.replace(
