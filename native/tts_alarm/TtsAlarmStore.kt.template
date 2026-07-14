@@ -7,8 +7,18 @@ import org.json.JSONObject
 
 /// One persisted native TTS alarm: the task title (kept for reference),
 /// the full spoken message (name + phrase + title, composed on the Dart
-/// side), and the trigger time.
-data class TtsAlarmEntry(val title: String, val message: String, val triggerAtMillis: Long)
+/// side), the trigger time, the original Dart-side task id (used to
+/// write back to the database when a notification action button is
+/// tapped, and to deep-link into the exact task when the notification
+/// body itself is tapped), and whether the voice reminder is enabled for
+/// this task (the visual banner always shows either way).
+data class TtsAlarmEntry(
+    val title: String,
+    val message: String,
+    val triggerAtMillis: Long,
+    val taskId: String? = null,
+    val voiceEnabled: Boolean = true,
+)
 
 /// Persists scheduled native TTS alarms (id -> title/message + trigger
 /// time) in SharedPreferences, since AlarmManager alarms are wiped by the
@@ -22,12 +32,24 @@ object TtsAlarmStore {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     @Synchronized
-    fun put(context: Context, id: Int, title: String, message: String, triggerAtMillis: Long) {
+    fun put(
+        context: Context,
+        id: Int,
+        title: String,
+        message: String,
+        triggerAtMillis: Long,
+        taskId: String?,
+        voiceEnabled: Boolean,
+    ) {
         val json = readJson(context)
         val entry = JSONObject()
         entry.put("title", title)
         entry.put("message", message)
         entry.put("triggerAtMillis", triggerAtMillis)
+        if (taskId != null) {
+            entry.put("taskId", taskId)
+        }
+        entry.put("voiceEnabled", voiceEnabled)
         json.put(id.toString(), entry)
         writeJson(context, json)
     }
@@ -50,8 +72,10 @@ object TtsAlarmStore {
             val title = entry.optString("title", "")
             val message = entry.optString("message", title)
             val trigger = entry.optLong("triggerAtMillis", 0L)
+            val taskId = if (entry.has("taskId")) entry.optString("taskId", null) else null
+            val voiceEnabled = entry.optBoolean("voiceEnabled", true)
             val id = key.toIntOrNull() ?: continue
-            result[id] = TtsAlarmEntry(title, message, trigger)
+            result[id] = TtsAlarmEntry(title, message, trigger, taskId, voiceEnabled)
         }
         return result
     }
