@@ -2,6 +2,8 @@
 // application package before compilation.
 package __PACKAGE__
 
+import android.app.Notification
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -12,6 +14,8 @@ import android.os.Looper
 import android.os.PowerManager
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import java.util.Locale
 
 /// Fires when a scheduled MiniMe reminder alarm goes off. Speaks a
@@ -21,6 +25,16 @@ import java.util.Locale
 /// user never opens the notification. This receiver is pure Kotlin (no
 /// Dart/Flutter engine involved), so it works reliably even when the app
 /// process was previously killed.
+///
+/// De asemenea afiseaza notificarea vizuala DIRECT de aici (nu doar prin
+/// flutter_local_notifications), pentru ca am observat pe teren ca alarma
+/// noastra nativa (AlarmManager + acest receiver) chiare sigur, in timp ce
+/// alarma programata separat de plugin-ul Flutter pentru banner-ul vizual
+/// poate sa nu se declanseze deloc pe unele telefoane (ex. ColorOS/Oppo)
+/// cand aplicatia e in fundal si ecranul e blocat. Folosind acelasi canal
+/// ("minime_reminders", creat deja de partea de Dart la fiecare pornire a
+/// aplicatiei) garantam ca cel putin un banner cu titlul si mesajul
+/// task-ului apare mereu, exact in momentul in care suna si vocea.
 class TtsAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val title = intent.getStringExtra("tts_title")
@@ -49,6 +63,14 @@ class TtsAlarmReceiver : BroadcastReceiver() {
             wakeLock?.acquire(20_000L)
         } catch (e: Exception) {
             // ignore - mai bine incercam sa vorbim oricum decat sa crapam aici
+        }
+
+        // Afiseaza notificarea vizuala imediat, indiferent daca TTS-ul
+        // reuseste sau nu - asta e partea garantata sa se vada pe ecran.
+        try {
+            showNotification(context, id, title ?: "MiniMe", message)
+        } catch (e: Exception) {
+            // best-effort - nu lasam un eventual crash aici sa opreasca vocea.
         }
 
         val pendingResult = goAsync()
@@ -96,6 +118,44 @@ class TtsAlarmReceiver : BroadcastReceiver() {
             } else {
                 finish()
             }
+        }
+    }
+
+    private fun showNotification(context: Context, id: Int, title: String, message: String) {
+        val appContext = context.applicationContext
+        val launchIntent = appContext.packageManager.getLaunchIntentForPackage(appContext.packageName)
+        launchIntent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+            (if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+        val contentPendingIntent = PendingIntent.getActivity(
+            appContext,
+            if (id != -1) id else 0,
+            launchIntent ?: Intent(),
+            flags,
+        )
+
+        val smallIconRes = try {
+            appContext.applicationInfo.icon
+        } catch (e: Exception) {
+            android.R.drawable.ic_popup_reminder
+        }
+
+        val builder = NotificationCompat.Builder(appContext, "minime_reminders")
+            .setSmallIcon(if (smallIconRes != 0) smallIconRes else android.R.drawable.ic_popup_reminder)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setAutoCancel(true)
+            .setContentIntent(contentPendingIntent)
+            .setFullScreenIntent(contentPendingIntent, true)
+
+        try {
+            NotificationManagerCompat.from(appContext).notify(if (id != -1) id else 0, builder.build())
+        } catch (e: SecurityException) {
+            // Permisiunea de notificari nu e acordata - nu putem afisa
+            // banner-ul, dar vocea de mai jos tot va suna.
         }
     }
 }
