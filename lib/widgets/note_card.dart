@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/note_task.dart';
 import '../models/priority_tag.dart';
 
@@ -23,6 +24,7 @@ class NoteTaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final urgency = task.urgencyColor != null ? Color(task.urgencyColor!) : null;
 
     return Card(
@@ -87,7 +89,7 @@ class NoteTaskCard extends StatelessWidget {
                               Padding(
                                 padding: const EdgeInsets.only(top: 4),
                                 child: Text(
-                                  '$subtaskDone/$subtaskTotal subtasks done',
+                                  l10n.noteCardSubtasksDone(subtaskDone, subtaskTotal),
                                   style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               ),
@@ -99,7 +101,7 @@ class NoteTaskCard extends StatelessWidget {
                                 if (priorityTag != null)
                                   Chip(
                                     label: Text(priorityTag!.label, style: const TextStyle(fontSize: 11)),
-                                    backgroundColor: priorityTag!.color.withOpacity(0.15),
+                                    backgroundColor: priorityTag!.color.withValues(alpha: 0.15),
                                     labelStyle: TextStyle(color: priorityTag!.color),
                                     visualDensity: VisualDensity.compact,
                                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -107,7 +109,7 @@ class NoteTaskCard extends StatelessWidget {
                                 if (task.durationMinutes != null)
                                   Chip(
                                     avatar: const Icon(Icons.schedule, size: 14),
-                                    label: Text(_durationLabel(task), style: const TextStyle(fontSize: 11)),
+                                    label: Text(_durationLabel(l10n, task), style: const TextStyle(fontSize: 11)),
                                     visualDensity: VisualDensity.compact,
                                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                   ),
@@ -117,7 +119,7 @@ class NoteTaskCard extends StatelessWidget {
                                     label: Text(
                                       '${task.reminderTime!.hour.toString().padLeft(2, '0')}:'
                                       '${task.reminderTime!.minute.toString().padLeft(2, '0')}'
-                                      '${task.recurrenceRule == 'DAILY' ? ' daily' : ''}',
+                                      '${task.recurrenceRule == 'DAILY' ? l10n.noteCardDaily : ''}',
                                       style: const TextStyle(fontSize: 11),
                                     ),
                                     visualDensity: VisualDensity.compact,
@@ -129,7 +131,7 @@ class NoteTaskCard extends StatelessWidget {
                                     label: Text(
                                       task.locationName?.isNotEmpty == true
                                           ? task.locationName!
-                                          : 'Place',
+                                          : l10n.noteCardPlace,
                                       style: const TextStyle(fontSize: 11),
                                     ),
                                     visualDensity: VisualDensity.compact,
@@ -156,18 +158,18 @@ class NoteTaskCard extends StatelessWidget {
     );
   }
 
-  String _durationLabel(NoteTask task) {
+  String _durationLabel(AppLocalizations l10n, NoteTask task) {
     final minutes = task.durationMinutes!;
     final unit = task.durationUnit ?? 'min';
     final display = minutesToDisplay(minutes, unit);
     final rounded = display == display.roundToDouble() ? display.toInt().toString() : display.toStringAsFixed(1);
     switch (unit) {
       case 'day':
-        return '$rounded d';
+        return l10n.noteCardDaysShort(rounded);
       case 'hour':
-        return '$rounded h';
+        return l10n.noteCardHoursShort(rounded);
       default:
-        return '$rounded min';
+        return l10n.noteCardMinutesShort(rounded);
     }
   }
 }
