@@ -12,7 +12,7 @@ class DatabaseHelper {
   DatabaseHelper._();
   static final DatabaseHelper instance = DatabaseHelper._();
 
-  static const int dbVersion = 3;
+  static const int dbVersion = 4;
 
   Database? _db;
 
@@ -81,17 +81,23 @@ class DatabaseHelper {
         locationLng REAL,
         locationRadius REAL,
         locationLastTriggeredDate TEXT,
+        voiceNotificationEnabled INTEGER NOT NULL DEFAULT 1,
         FOREIGN KEY (categoryId) REFERENCES categories (id),
         FOREIGN KEY (priorityTagId) REFERENCES priority_tags (id),
         FOREIGN KEY (parentTaskId) REFERENCES note_tasks (id)
+
       )
     ''');
 
     await db.execute('''
-      CREATE TABLE bill_items (
+      CREATE TABLE bill_items  (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         amount REAL NOT NULL,
+        category TEXT NOT NULL,
+        dueDate TEXT,
+        isSettled INTEGER NOT NULL DEFAULT 0,
+        isSettled TEXT,
         category TEXT NOT NULL,
         dueDate TEXT,
         isSettled INTEGER NOT NULL DEFAULT 0,
@@ -197,6 +203,16 @@ class DatabaseHelper {
         await db.insert('categories', quickNotesCategory().toMap());
       } catch (_) {
         // exista deja (upgrade rulat de mai multe ori) - ignora.
+      }
+    }
+
+    if (oldVersion < 4) {
+      try {
+        await db.execute(
+          'ALTER TABLE note_tasks ADD COLUMN voiceNotificationEnabled INTEGER NOT NULL DEFAULT 1',
+        );
+      } catch (_) {
+        // column already exists - ignore, keeps upgrade idempotent
       }
     }
   }
