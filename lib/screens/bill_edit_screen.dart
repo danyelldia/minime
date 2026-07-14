@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/bill_item.dart';
 import '../providers/bill_provider.dart';
 
@@ -91,22 +92,23 @@ class _BillEditScreenState extends State<BillEditScreen> {
     Navigator.pop(context);
   }
 
-  String _categoryLabel(BillCategory c) {
+  String _categoryLabel(AppLocalizations l10n, BillCategory c) {
     switch (c) {
       case BillCategory.bill:
-        return 'Bill';
+        return l10n.billLabelBill;
       case BillCategory.income:
-        return 'Income';
+        return l10n.billLabelIncome;
       case BillCategory.shopping:
-        return 'Shopping list item';
+        return l10n.billLabelShopping;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.existing != null ? 'Edit' : 'Add'),
+        title: Text(widget.existing != null ? l10n.billEditTitleEdit : l10n.billEditTitleAdd),
         actions: [
           if (widget.existing != null)
             IconButton(icon: const Icon(Icons.delete_outline_rounded), onPressed: _delete),
@@ -117,29 +119,29 @@ class _BillEditScreenState extends State<BillEditScreen> {
         children: [
           DropdownButtonFormField<BillCategory>(
             value: _category,
-            decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder()),
+            decoration: InputDecoration(labelText: l10n.billEditType, border: const OutlineInputBorder()),
             items: BillCategory.values
-                .map((c) => DropdownMenuItem(value: c, child: Text(_categoryLabel(c))))
+                .map((c) => DropdownMenuItem(value: c, child: Text(_categoryLabel(l10n, c))))
                 .toList(),
             onChanged: (v) => setState(() => _category = v ?? _category),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: _nameController,
-            decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder()),
+            decoration: InputDecoration(labelText: l10n.billEditName, border: const OutlineInputBorder()),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: _amountController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: const InputDecoration(labelText: 'Amount (RON)', border: OutlineInputBorder()),
+            decoration: InputDecoration(labelText: l10n.billEditAmount, border: const OutlineInputBorder()),
           ),
           const SizedBox(height: 16),
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(_dueDate == null
-                ? 'No date'
-                : 'Date: ${_dueDate!.day}/${_dueDate!.month}/${_dueDate!.year}'),
+                ? l10n.billEditNoDate
+                : l10n.billEditDateLabel('${_dueDate!.day}/${_dueDate!.month}/${_dueDate!.year}')),
             trailing: const Icon(Icons.calendar_month_rounded),
             onTap: _pickDate,
           ),
@@ -147,13 +149,13 @@ class _BillEditScreenState extends State<BillEditScreen> {
           TextField(
             controller: _notesController,
             maxLines: 3,
-            decoration: const InputDecoration(
-              labelText: 'Notes (optional)',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.billEditNotes,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 32),
-          FilledButton(onPressed: _saving ? null : _save, child: const Text('Save')),
+          FilledButton(onPressed: _saving ? null : _save, child: Text(l10n.save)),
         ],
       ),
     );
