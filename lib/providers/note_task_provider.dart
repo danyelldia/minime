@@ -9,6 +9,16 @@ class NoteTaskProvider extends ChangeNotifier {
 
   List<NoteTask> get tasks => List.unmodifiable(_tasks);
 
+  /// Looks up a single task by id (e.g. for deep-linking straight into a
+  /// task's edit screen from a tapped reminder notification). Returns
+  /// null if it doesn't exist (deleted in the meantime, etc).
+  NoteTask? byId(String id) {
+    for (final t in _tasks) {
+      if (t.id == id) return t;
+    }
+    return null;
+  }
+
   /// Top-level items only (no subtasks) for a category, sorted by the
   /// user's custom drag-and-drop order, then by creation date.
   List<NoteTask> byCategory(String categoryId) {
@@ -135,6 +145,7 @@ class NoteTaskProvider extends ChangeNotifier {
       locationLng: updated.locationLng,
       locationRadius: updated.locationRadius,
       locationLastTriggeredDate: updated.locationLastTriggeredDate,
+      voiceNotificationEnabled: updated.voiceNotificationEnabled,
     );
     await updateTask(rebuilt);
     if (newDone) {
