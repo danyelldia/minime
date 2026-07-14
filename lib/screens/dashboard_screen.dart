@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/bill_item.dart';
 import '../models/category.dart';
 import '../models/note_task.dart';
@@ -99,6 +100,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final taskProvider = context.watch<NoteTaskProvider>();
     final billProvider = context.watch<BillProvider>();
     final history = context.watch<HistoryProvider>();
@@ -110,11 +112,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('MiniMe'),
+        title: Text(l10n.appTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.grid_view_rounded),
-            tooltip: 'Eisenhower Matrix',
+            tooltip: l10n.dashboardEisenhowerTooltip,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const EisenhowerScreen()),
@@ -122,7 +124,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.history_rounded),
-            tooltip: 'History',
+            tooltip: l10n.dashboardHistoryTooltip,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const HistoryScreen()),
@@ -130,7 +132,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           IconButton(
             icon: const Icon(Icons.settings_rounded),
-            tooltip: 'Settings',
+            tooltip: l10n.dashboardSettingsTooltip,
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const SettingsScreen()),
@@ -155,7 +157,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const Icon(Icons.local_fire_department_rounded, color: Colors.deepOrange),
                     const SizedBox(width: 10),
                     Text(
-                      '$streak day${streak == 1 ? '' : 's'} streak - keep it going!',
+                      l10n.dashboardStreak(streak),
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
                   ],
@@ -177,7 +179,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('Quick Note', style: Theme.of(context).textTheme.titleMedium),
+                        Text(l10n.dashboardQuickNote, style: Theme.of(context).textTheme.titleMedium),
                         const SizedBox(height: 4),
                         TextField(
                           controller: _quickNoteController,
@@ -185,10 +187,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           autofocus: true,
                           maxLines: null,
                           textInputAction: TextInputAction.done,
-                          decoration: const InputDecoration(
+                          decoration: InputDecoration(
                             border: InputBorder.none,
                             isDense: true,
-                            hintText: 'Type here...',
+                            hintText: l10n.dashboardQuickNoteHint,
                           ),
                           onSubmitted: (_) => _saveQuickNote(),
                         ),
@@ -219,15 +221,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     builder: (_) => const CategoryDetailScreen(categoryId: quickNotesCategoryId),
                   ),
                 ),
-                child: Text('View $quickNotesCount quick note${quickNotesCount == 1 ? '' : 's'}'),
+                child: Text(l10n.dashboardViewQuickNotes(quickNotesCount)),
               ),
             ),
           const SizedBox(height: 24),
 
-          const _SectionHeader(title: 'Tasks', icon: Icons.checklist_rounded),
+          _SectionHeader(title: l10n.dashboardTasksSection, icon: Icons.checklist_rounded),
           const SizedBox(height: 8),
           if (urgentTasks.isEmpty)
-            const _EmptyHint(text: 'Nothing urgent right now.')
+            _EmptyHint(text: l10n.dashboardNoUrgentTasks)
           else
             ...urgentTasks.map((t) => _SimpleRow(
                   leading: Icon(
@@ -243,15 +245,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 )),
           const SizedBox(height: 24),
 
-          const _SectionHeader(title: 'Bills', icon: Icons.receipt_long_rounded),
+          _SectionHeader(title: l10n.dashboardBillsSection, icon: Icons.receipt_long_rounded),
           const SizedBox(height: 8),
           if (urgentBills.isEmpty)
-            const _EmptyHint(text: 'No unpaid bills due soon.')
+            _EmptyHint(text: l10n.dashboardNoUnpaidBills)
           else
             ...urgentBills.map((b) => _SimpleRow(
                   leading: const Icon(Icons.receipt_rounded, size: 18, color: Colors.redAccent),
                   title: b.name,
-                  trailing: '${b.amount.toStringAsFixed(2)} RON',
+                  trailing: l10n.billCardAmount(b.amount.toStringAsFixed(2)),
                   onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (_) => BillEditScreen(existing: b)),
