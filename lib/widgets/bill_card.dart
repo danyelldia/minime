@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/bill_item.dart';
 
 class BillCard extends StatelessWidget {
@@ -14,19 +15,20 @@ class BillCard extends StatelessWidget {
     required this.onToggleSettled,
   });
 
-  String get _settledLabel {
+  String _settledLabel(AppLocalizations l10n) {
     switch (item.category) {
       case BillCategory.bill:
-        return 'Paid';
+        return l10n.billPaid;
       case BillCategory.income:
-        return 'Received';
+        return l10n.billReceived;
       case BillCategory.shopping:
-        return 'Bought';
+        return l10n.billBought;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: ListTile(
@@ -40,12 +42,13 @@ class BillCard extends StatelessWidget {
           style: TextStyle(decoration: item.isSettled ? TextDecoration.lineThrough : null),
         ),
         subtitle: item.isSettled
-            ? Text(_settledLabel)
+            ? Text(_settledLabel(l10n))
             : item.dueDate != null
-                ? Text('Due: ${item.dueDate!.day}/${item.dueDate!.month}/${item.dueDate!.year}')
+                ? Text(l10n.billDueDate(
+                    '${item.dueDate!.day}/${item.dueDate!.month}/${item.dueDate!.year}'))
                 : null,
         trailing: Text(
-          '${item.amount.toStringAsFixed(2)} RON',
+          l10n.billCardAmount(item.amount.toStringAsFixed(2)),
           style: Theme.of(context).textTheme.titleSmall,
         ),
       ),
