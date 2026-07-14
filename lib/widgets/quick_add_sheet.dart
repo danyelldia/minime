@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/bill_item.dart';
 import '../models/note_task.dart';
 import '../providers/bill_provider.dart';
@@ -59,16 +60,16 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
     super.dispose();
   }
 
-  String get _hint {
+  String _hint(AppLocalizations l10n) {
     switch (_kind) {
       case QuickAddKind.note:
-        return 'Write something...';
+        return l10n.quickAddWriteHint;
       case QuickAddKind.task:
-        return 'e.g. tomorrow at 6pm water the plants';
+        return l10n.quickAddTaskHint;
       case QuickAddKind.bill:
-        return 'Bill name';
+        return l10n.quickAddBillNameHint;
       case QuickAddKind.shopping:
-        return 'Item to buy';
+        return l10n.quickAddItemToBuyHint;
     }
   }
 
@@ -85,9 +86,10 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
     } catch (e, st) {
       debugPrint('QuickAddSheet._submit error: $e\n$st');
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         setState(() => _submitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not save - please try again.')),
+          SnackBar(content: Text(l10n.noteEditCouldNotSave)),
         );
       }
     }
@@ -137,6 +139,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Padding(
       padding: EdgeInsets.only(
         left: 20,
@@ -152,22 +155,22 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
             spacing: 8,
             children: [
               ChoiceChip(
-                label: const Text('Note'),
+                label: Text(l10n.quickAddNoteChip),
                 selected: _kind == QuickAddKind.note,
                 onSelected: (_) => setState(() => _kind = QuickAddKind.note),
               ),
               ChoiceChip(
-                label: const Text('Task'),
+                label: Text(l10n.quickAddTaskChip),
                 selected: _kind == QuickAddKind.task,
                 onSelected: (_) => setState(() => _kind = QuickAddKind.task),
               ),
               ChoiceChip(
-                label: const Text('Bill'),
+                label: Text(l10n.quickAddBillChip),
                 selected: _kind == QuickAddKind.bill,
                 onSelected: (_) => setState(() => _kind = QuickAddKind.bill),
               ),
               ChoiceChip(
-                label: const Text('Shopping item'),
+                label: Text(l10n.quickAddShoppingChip),
                 selected: _kind == QuickAddKind.shopping,
                 onSelected: (_) => setState(() => _kind = QuickAddKind.shopping),
               ),
@@ -177,7 +180,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
           TextField(
             controller: _textController,
             autofocus: true,
-            decoration: InputDecoration(hintText: _hint, border: const OutlineInputBorder()),
+            decoration: InputDecoration(hintText: _hint(l10n), border: const OutlineInputBorder()),
             onSubmitted: (_) => _submit(),
           ),
           if (_kind == QuickAddKind.bill || _kind == QuickAddKind.shopping) ...[
@@ -185,13 +188,13 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
             TextField(
               controller: _amountController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Amount', border: OutlineInputBorder()),
+              decoration: InputDecoration(labelText: l10n.quickAddAmountLabel, border: const OutlineInputBorder()),
             ),
           ],
           if (_kind == QuickAddKind.task) ...[
             const SizedBox(height: 8),
             Text(
-              'Tip: try "tomorrow at 8", "in 30 minutes", or "next friday".',
+              l10n.quickAddTaskTip,
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -204,7 +207,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
                     height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Text('Add'),
+                : Text(l10n.quickAddButton),
           ),
         ],
       ),
