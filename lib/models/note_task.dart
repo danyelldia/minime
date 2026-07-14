@@ -32,6 +32,7 @@ class NoteTask {
   final double? locationLng;
   final double? locationRadius; // meters
   final String? locationLastTriggeredDate; // yyyy-MM-dd, avoids repeat spam
+  final bool voiceNotificationEnabled; // spoken TTS reminder on/off per task
 
   const NoteTask({
     required this.id,
@@ -60,6 +61,7 @@ class NoteTask {
     this.locationLng,
     this.locationRadius,
     this.locationLastTriggeredDate,
+    this.voiceNotificationEnabled = true,
   });
 
   bool get isSubtask => parentTaskId != null;
@@ -90,6 +92,7 @@ class NoteTask {
     double? locationLng,
     double? locationRadius,
     String? locationLastTriggeredDate,
+    bool? voiceNotificationEnabled,
   }) {
     return NoteTask(
       id: id,
@@ -118,6 +121,7 @@ class NoteTask {
       locationLng: locationLng ?? this.locationLng,
       locationRadius: locationRadius ?? this.locationRadius,
       locationLastTriggeredDate: locationLastTriggeredDate ?? this.locationLastTriggeredDate,
+      voiceNotificationEnabled: voiceNotificationEnabled ?? this.voiceNotificationEnabled,
     );
   }
 
@@ -148,6 +152,7 @@ class NoteTask {
         'locationLng': locationLng,
         'locationRadius': locationRadius,
         'locationLastTriggeredDate': locationLastTriggeredDate,
+        'voiceNotificationEnabled': voiceNotificationEnabled ? 1 : 0,
       };
 
   factory NoteTask.fromMap(Map<String, dynamic> map) => NoteTask(
@@ -177,6 +182,7 @@ class NoteTask {
         locationLng: (map['locationLng'] as num?)?.toDouble(),
         locationRadius: (map['locationRadius'] as num?)?.toDouble(),
         locationLastTriggeredDate: map['locationLastTriggeredDate'] as String?,
+        voiceNotificationEnabled: ((map['voiceNotificationEnabled'] as int?) ?? 1) == 1,
       );
 }
 
