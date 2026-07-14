@@ -10,6 +10,7 @@ import 'providers/history_provider.dart';
 import 'providers/note_task_provider.dart';
 import 'providers/priority_tag_provider.dart';
 import 'providers/profile_provider.dart';
+import 'providers/theme_provider.dart';
 import 'screens/home_shell.dart';
 import 'screens/note_edit_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -107,14 +108,15 @@ class MiniMeApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => BillProvider()..load()),
         ChangeNotifierProvider(create: (_) => HistoryProvider()..load()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()..load()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()..load()),
       ],
-      child: MaterialApp(
-        title: 'MiniMe',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
-        themeMode: ThemeMode.system,
-        home: const _AppRoot(),
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) => MaterialApp(
+          title: 'MiniMe',
+          debugShowCheckedModeBanner: false,
+          theme: themeProvider.themeData,
+          home: const _AppRoot(),
+        ),
       ),
     );
   }
