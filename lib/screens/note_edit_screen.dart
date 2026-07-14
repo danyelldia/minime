@@ -377,7 +377,7 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
 
     return PopScope(
       canPop: !_hasUnsavedChanges,
-      onPopInvokedWithDidPop: (didPop, result) async {
+      onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         final action = await _confirmDiscardDialog();
         if (!mounted) return;
