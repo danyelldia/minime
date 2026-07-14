@@ -1,0 +1,333 @@
+{
+  "@@locale": "en",
+  "appTitle": "MiniMe",
+  "save": "Save",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "add": "Add",
+  "ok": "OK",
+  "discard": "Discard",
+  "none": "None",
+  "navDashboard": "Dashboard",
+  "navNotes": "Notes",
+  "navBills": "Bills",
+  "navCalendar": "Calendar",
+  "navToday": "Today",
+  "dashboardEisenhowerTooltip": "Eisenhower Matrix",
+  "dashboardHistoryTooltip": "History",
+  "dashboardSettingsTooltip": "Settings",
+  "dashboardStreak": "{count}-day streak - keep it going!",
+  "@dashboardStreak": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "dashboardQuickNote": "Quick Note",
+  "dashboardQuickNoteHint": "Type here...",
+  "dashboardViewQuickNotes": "View {count} quick notes",
+  "@dashboardViewQuickNotes": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "dashboardTasksSection": "Tasks",
+  "dashboardBillsSection": "Bills",
+  "dashboardNoUrgentTasks": "Nothing urgent right now.",
+  "dashboardNoUnpaidBills": "No unpaid bills due soon.",
+  "notesTitle": "Notes & To-Do",
+  "notesNewCategoryTooltip": "New category",
+  "notesNoCategories": "No categories yet",
+  "billsTitle": "Bills / Income / Shopping",
+  "billsTabBills": "Bills",
+  "billsTabIncome": "Income",
+  "billsTabShopping": "Shopping",
+  "billsTotalUnpaid": "Total unpaid",
+  "billsTotalExpected": "Total expected",
+  "billsTotalRemaining": "Total remaining cost",
+  "billsNothingHere": "Nothing here yet",
+  "billLabelBill": "Bill",
+  "billLabelIncome": "Income",
+  "billLabelShopping": "Shopping list item",
+  "billPaid": "Paid",
+  "billReceived": "Received",
+  "billBought": "Bought",
+  "billDueDate": "Due: {date}",
+  "@billDueDate": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "billEditTitleEdit": "Edit",
+  "billEditTitleAdd": "Add",
+  "billEditType": "Type",
+  "billEditName": "Name",
+  "billEditAmount": "Amount (RON)",
+  "billEditNoDate": "No date",
+  "billEditDateLabel": "Date: {date}",
+  "@billEditDateLabel": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "billEditNotes": "Notes (optional)",
+  "calendarTitle": "Calendar",
+  "calendarNothingToday": "Nothing on this day",
+  "categoryGone": "This category no longer exists",
+  "categoryAll": "All",
+  "categorySubcategory": "Subcategory",
+  "categoryDragHint": "Drag to reorder within a single category (pick one above).",
+  "categoryNothingHere": "Nothing here yet",
+  "categoryDeleteTitle": "Delete this category?",
+  "categoryDeleteBody": "This also deletes its subcategories and all notes/to-dos in them.",
+  "categoryEditTitleEdit": "Edit category",
+  "categoryEditTitleNewSub": "New subcategory",
+  "categoryEditTitleNew": "New category",
+  "categoryEditIcon": "Icon",
+  "categoryEditColor": "Color",
+  "eisenhowerTitle": "Eisenhower Matrix",
+  "eisenhowerDoFirst": "Do first",
+  "eisenhowerDoFirstSub": "Urgent & important",
+  "eisenhowerSchedule": "Schedule",
+  "eisenhowerScheduleSub": "Important, not urgent",
+  "eisenhowerDelegate": "Delegate",
+  "eisenhowerDelegateSub": "Urgent, not important",
+  "eisenhowerEliminate": "Eliminate",
+  "eisenhowerEliminateSub": "Neither",
+  "historyTitle": "History",
+  "historyNoEvents": "No events yet",
+  "historyDeletedTask": "Deleted task",
+  "historyActionCreated": "Created",
+  "historyActionDone": "Marked Done",
+  "historyActionSnoozed": "Snoozed",
+  "historyActionNotToday": "Not Today",
+  "historyActionMovedTomorrow": "Moved to tomorrow",
+  "historyEntryLine": "{action}{snooze} - {time}",
+  "@historyEntryLine": {
+    "placeholders": {
+      "action": {},
+      "snooze": {},
+      "time": {}
+    }
+  },
+  "historySnoozeMinutes": " ({minutes} min)",
+  "@historySnoozeMinutes": {
+    "placeholders": {
+      "minutes": {}
+    }
+  },
+  "noteEditTitleEdit": "Edit",
+  "noteEditTitleAdd": "Add",
+  "noteEditSaveChangesTitle": "Save changes?",
+  "noteEditSaveChangesBody": "You have unsaved changes. Do you want to save them before leaving?",
+  "noteEditCouldNotGetLocation": "Couldn't get your location. Check location permission.",
+  "noteEditCouldNotSave": "Could not save - please try again.",
+  "noteEditNote": "Note",
+  "noteEditTodo": "To-Do",
+  "noteEditTitle": "Title",
+  "noteEditDescription": "Description (optional)",
+  "noteEditCategory": "Category",
+  "noteEditPriority": "Priority (optional)",
+  "noteEditTags": "Tags",
+  "noteEditAddTag": "Add tag",
+  "noteEditUrgent": "Urgent",
+  "noteEditImportant": "Important",
+  "noteEditEisenhowerHint": "Used by the Eisenhower Matrix view on the Today screen.",
+  "noteEditEstimatedDuration": "Estimated duration",
+  "noteEditMinutes": "minutes",
+  "noteEditHours": "hours",
+  "noteEditDays": "days",
+  "noteEditNoDueDate": "No due date",
+  "noteEditDueDateLabel": "Due date: {date}",
+  "@noteEditDueDateLabel": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "noteEditReminderSection": "Reminder notification",
+  "noteEditEnableReminder": "Enable reminder",
+  "noteEditTimeLabel": "Time: {time}",
+  "@noteEditTimeLabel": {
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "noteEditRepeatDaily": "Repeat daily",
+  "noteEditAllowVoice": "Allow voice notification",
+  "noteEditAllowVoiceSub": "Speaks the reminder aloud. Turn off for a silent banner only.",
+  "noteEditNotificationActionsHint": "The notification comes with sound and quick actions: Done, Snooze 15m, Not Today.",
+  "noteEditLocationSection": "Location reminder",
+  "noteEditRemindNearPlace": "Remind me when I'm near a place",
+  "noteEditPlaceName": "Place name (e.g. Home, Office)",
+  "noteEditRadius": "Radius (meters)",
+  "noteEditGettingLocation": "Getting location...",
+  "noteEditLocationSetUpdate": "Location set (tap to update)",
+  "noteEditUseCurrentLocation": "Use my current location",
+  "noteEditLocationCheckHint": "Checked whenever you open or resume MiniMe while near this spot.",
+  "noteEditUrgencyColor": "Urgency color (optional)",
+  "noteEditSubtasks": "Subtasks",
+  "noteEditAddSubtask": "Add subtask",
+  "onboardingTitle": "Hi, nice to meet you",
+  "onboardingIntro": "I'm MiniMe, your personal organizer. Tell me a bit about yourself so I can feel a little more like your assistant and less like a stranger. Everything here is optional and stays only on this phone.",
+  "onboardingNameLabel": "What should I call you?",
+  "onboardingBirthdayOptional": "Birthday (optional)",
+  "onboardingBirthdayLabel": "Birthday: {date}",
+  "@onboardingBirthdayLabel": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "onboardingRelationshipOptional": "Relationship status (optional)",
+  "onboardingPartnerNameOptional": "Partner's name (optional)",
+  "onboardingHasKids": "Do you have kids?",
+  "onboardingKidsNamesOptional": "Kids' names (optional)",
+  "onboardingHasPets": "Any pets?",
+  "onboardingPetsNamesOptional": "Pets' names (optional)",
+  "onboardingFinishButton": "That's me, let's start",
+  "onboardingSkip": "Skip for now",
+  "statusSingle": "Single",
+  "statusRelationship": "In a relationship",
+  "statusMarried": "Married",
+  "statusComplicated": "It's complicated",
+  "statusPreferNotToSay": "Prefer not to say",
+  "pomodoroTitle": "Focus timer",
+  "pomodoroSpeakDone": "Time is up. Focus session complete.",
+  "pomodoroDoneTitle": "Focus session complete",
+  "pomodoroDoneWithTask": "Nice work on \"{title}\".",
+  "@pomodoroDoneWithTask": {
+    "placeholders": {
+      "title": {}
+    }
+  },
+  "pomodoroDoneNoTask": "Nice work! Take a short break.",
+  "profileTitle": "Profile",
+  "profileName": "Name",
+  "profileBirthday": "Birthday",
+  "profileBirthdayLabel": "Birthday: {date}",
+  "@profileBirthdayLabel": {
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "profileRelationship": "Relationship status",
+  "profilePartnerName": "Partner's name",
+  "profileKids": "Kids",
+  "profileKidsNames": "Kids' names",
+  "profilePets": "Pets",
+  "profilePetsNames": "Pets' names",
+  "profileSaveButton": "Save profile",
+  "profileSavedSnack": "Profile saved",
+  "profileFactsSectionTitle": "Things I remember about you",
+  "profileFactsHint": "Add short facts, like \"I like pizza\" or \"My mother's name is Maria\".",
+  "profileAddToProfileHint": "Add to profile...",
+  "todayTitle": "Today",
+  "todayMoodPlanned": "Planned",
+  "todayMoodUrgent": "Something urgent",
+  "todayMoodLazy": "Feeling lazy",
+  "todayMoodRandom": "Surprise me",
+  "todayMoodMovie": "Watch a movie",
+  "todayMovieCard": "Sounds like a plan. Everything else can wait - enjoy your movie!",
+  "todayHowAboutThis": "How about this?",
+  "todayNothingPending": "Nothing pending right now - nice!",
+  "todayPickAnother": "Pick another",
+  "todayTimeAvailable": "Time available today (minutes):",
+  "todayUsedMinutes": "Used: {used} / {available} min ({remaining} min left)",
+  "@todayUsedMinutes": {
+    "placeholders": {
+      "available": {},
+      "remaining": {},
+      "used": {}
+    }
+  },
+  "todayCanDo": "You can do today ({count})",
+  "@todayCanDo": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "todayNothingScheduled": "Nothing scheduled yet. Set durations on your to-dos.",
+  "todayDoesntFit": "Doesn't fit today ({count})",
+  "@todayDoesntFit": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "todayNoDurationSet": "No duration set ({count})",
+  "@todayNoDurationSet": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "todaySetDurationHint": "Set a duration on these to-dos to include them in the plan.",
+  "settingsTitle": "Settings",
+  "settingsExportFailed": "Export failed: {error}",
+  "@settingsExportFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "settingsThemeSection": "Theme",
+  "settingsLanguageSection": "Language",
+  "settingsProfileTitle": "Profile",
+  "settingsProfileSubtitle": "What MiniMe knows about you",
+  "settingsExportTitle": "Export / backup data",
+  "settingsExportSubtitle": "Save a JSON copy of everything in MiniMe",
+  "billCardAmount": "{amount} RON",
+  "@billCardAmount": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "categoryCardNotesCount": "{count} notes/to-dos",
+  "@categoryCardNotesCount": {
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "noteCardSubtasksDone": "{done}/{total} subtasks done",
+  "@noteCardSubtasksDone": {
+    "placeholders": {
+      "done": {},
+      "total": {}
+    }
+  },
+  "noteCardDaily": " daily",
+  "noteCardPlace": "Place",
+  "noteCardMinutesShort": "{value} min",
+  "@noteCardMinutesShort": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "noteCardHoursShort": "{value} h",
+  "@noteCardHoursShort": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "noteCardDaysShort": "{value} d",
+  "@noteCardDaysShort": {
+    "placeholders": {
+      "value": {}
+    }
+  },
+  "quickAddWriteHint": "Write something...",
+  "quickAddTaskHint": "e.g. tomorrow at 6pm water the plants",
+  "quickAddBillNameHint": "Bill name",
+  "quickAddItemToBuyHint": "Item to buy",
+  "quickAddNoteChip": "Note",
+  "quickAddTaskChip": "Task",
+  "quickAddBillChip": "Bill",
+  "quickAddShoppingChip": "Shopping item",
+  "quickAddAmountLabel": "Amount",
+  "quickAddTaskTip": "Tip: try \"tomorrow at 8\", \"in 30 minutes\", or \"next friday\".",
+  "quickAddButton": "Add",
+  "langEnglish": "English",
+  "langRomanian": "Romanian",
+  "langSpanish": "Spanish",
+  "langFrench": "French",
+  "langRussian": "Russian",
+  "langGerman": "German",
+  "langItalian": "Italian",
+  "langPortuguese": "Portuguese",
+  "langPolish": "Polish"
+}
