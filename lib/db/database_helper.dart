@@ -97,10 +97,6 @@ class DatabaseHelper {
         category TEXT NOT NULL,
         dueDate TEXT,
         isSettled INTEGER NOT NULL DEFAULT 0,
-        isSettled TEXT,
-        category TEXT NOT NULL,
-        dueDate TEXT,
-        isSettled INTEGER NOT NULL DEFAULT 0,
         notes TEXT
       )
     ''');
