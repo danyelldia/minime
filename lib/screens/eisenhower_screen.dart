@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/note_task.dart';
 import '../providers/note_task_provider.dart';
 import '../providers/priority_tag_provider.dart';
@@ -16,6 +17,7 @@ class EisenhowerScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final taskProvider = context.watch<NoteTaskProvider>();
     final tagProvider = context.watch<PriorityTagProvider>();
     final todos = taskProvider.pendingTodos;
@@ -26,7 +28,7 @@ class EisenhowerScreen extends StatelessWidget {
     final eliminate = todos.where((t) => !t.isUrgent && !t.isImportant).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Eisenhower Matrix')),
+      appBar: AppBar(title: Text(l10n.eisenhowerTitle)),
       body: GridView.count(
         crossAxisCount: 2,
         padding: const EdgeInsets.all(12),
@@ -35,32 +37,32 @@ class EisenhowerScreen extends StatelessWidget {
         childAspectRatio: 0.8,
         children: [
           _Quadrant(
-            title: 'Do first',
-            subtitle: 'Urgent & important',
+            title: l10n.eisenhowerDoFirst,
+            subtitle: l10n.eisenhowerDoFirstSub,
             color: Colors.red,
             tasks: doFirst,
             tagProvider: tagProvider,
             taskProvider: taskProvider,
           ),
           _Quadrant(
-            title: 'Schedule',
-            subtitle: 'Important, not urgent',
+            title: l10n.eisenhowerSchedule,
+            subtitle: l10n.eisenhowerScheduleSub,
             color: Colors.blue,
             tasks: schedule,
             tagProvider: tagProvider,
             taskProvider: taskProvider,
           ),
           _Quadrant(
-            title: 'Delegate',
-            subtitle: 'Urgent, not important',
+            title: l10n.eisenhowerDelegate,
+            subtitle: l10n.eisenhowerDelegateSub,
             color: Colors.orange,
             tasks: delegate,
             tagProvider: tagProvider,
             taskProvider: taskProvider,
           ),
           _Quadrant(
-            title: 'Eliminate',
-            subtitle: 'Neither',
+            title: l10n.eisenhowerEliminate,
+            subtitle: l10n.eisenhowerEliminateSub,
             color: Colors.grey,
             tasks: eliminate,
             tagProvider: tagProvider,
@@ -92,10 +94,10 @@ class _Quadrant extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      color: color.withOpacity(0.06),
+      color: color.withValues(alpha: 0.06),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: color.withOpacity(0.4)),
+        side: BorderSide(color: color.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
