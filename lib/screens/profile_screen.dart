@@ -1,8 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/user_profile.dart';
 import '../providers/profile_provider.dart';
+
+const List<String> _statusCodes = [
+  'single',
+  'relationship',
+  'married',
+  'complicated',
+  'prefer_not_to_say',
+];
+
+String _statusLabel(AppLocalizations l10n, String code) {
+  switch (code) {
+    case 'single':
+      return l10n.statusSingle;
+    case 'relationship':
+      return l10n.statusRelationship;
+    case 'married':
+      return l10n.statusMarried;
+    case 'complicated':
+      return l10n.statusComplicated;
+    case 'prefer_not_to_say':
+      return l10n.statusPreferNotToSay;
+    default:
+      return code;
+  }
+}
+
+/// Old app versions saved the literal English label as maritalStatus.
+/// Normalize any of that (or an already-valid code) into a code, so an
+/// existing profile never crashes the dropdown after this update.
+String? _normalizeStatus(String? raw) {
+  if (raw == null) return null;
+  if (_statusCodes.contains(raw)) return raw;
+  switch (raw.toLowerCase()) {
+    case 'single':
+      return 'single';
+    case 'in a relationship':
+      return 'relationship';
+    case 'married':
+      return 'married';
+    case "it's complicated":
+      return 'complicated';
+    case 'prefer not to say':
+      return 'prefer_not_to_say';
+    default:
+      return null;
+  }
+}
 
 /// Shows and edits the structured profile collected during onboarding,
 /// plus the free-form list of facts MiniMe remembers about the user
@@ -28,21 +76,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _hasPets = false;
   bool _initialized = false;
 
-  final _statusOptions = const [
-    'Single',
-    'In a relationship',
-    'Married',
-    'It\'s complicated',
-    'Prefer not to say',
-  ];
-
   void _loadFrom(UserProfile p) {
     _nameController = TextEditingController(text: p.name);
     _spouseController = TextEditingController(text: p.spouseName ?? '');
     _kidsController = TextEditingController(text: p.kidsNames ?? '');
     _petsController = TextEditingController(text: p.petsNames ?? '');
     _birthDate = p.birthDate;
-    _maritalStatus = p.maritalStatus;
+    _maritalStatus = _normalizeStatus(p.maritalStatus);
     _hasKids = p.hasKids;
     _hasPets = p.hasPets;
     _initialized = true;
@@ -71,6 +111,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _save() async {
+    final l10n = AppLocalizations.of(context)!;
     final provider = context.read<ProfileProvider>();
     final updated = provider.profile.copyWith(
       name: _nameController.text.trim(),
@@ -85,7 +126,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await provider.saveProfile(updated);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile saved')),
+        SnackBar(content: Text(l10n.profileSavedSnack)),
       );
     }
   }
@@ -97,40 +138,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _factController.clear();
   }
 
-  bool get _showsSpouseField =>
-      _maritalStatus == 'Married' || _maritalStatus == 'In a relationship';
+  bool get _showsSpouseField => _maritalStatus == 'married' || _maritalStatus == 'relationship';
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final profileProvider = context.watch<ProfileProvider>();
     if (!_initialized) _loadFrom(profileProvider.profile);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(title: Text(l10n.profileTitle)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           TextField(
             controller: _nameController,
-            decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder()),
+            decoration: InputDecoration(labelText: l10n.profileName, border: const OutlineInputBorder()),
           ),
           const SizedBox(height: 16),
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(_birthDate == null
-                ? 'Birthday'
-                : 'Birthday: ${_birthDate!.day}/${_birthDate!.month}/${_birthDate!.year}'),
+                ? l10n.profileBirthday
+                : l10n.profileBirthdayLabel('${_birthDate!.day}/${_birthDate!.month}/${_birthDate!.year}')),
             trailing: const Icon(Icons.cake_rounded),
             onTap: _pickBirthDate,
           ),
           DropdownButtonFormField<String>(
             value: _maritalStatus,
-            decoration: const InputDecoration(
-              labelText: 'Relationship status',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.profileRelationship,
+              border: const OutlineInputBorder(),
             ),
-            items: _statusOptions
-                .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+            items: _statusCodes
+                .map((code) => DropdownMenuItem(value: code, child: Text(_statusLabel(l10n, code))))
                 .toList(),
             onChanged: (v) => setState(() => _maritalStatus = v),
           ),
@@ -138,49 +179,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 16),
             TextField(
               controller: _spouseController,
-              decoration: const InputDecoration(
-                labelText: "Partner's name",
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.profilePartnerName,
+                border: const OutlineInputBorder(),
               ),
             ),
           ],
           const SizedBox(height: 16),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Kids'),
+            title: Text(l10n.profileKids),
             value: _hasKids,
             onChanged: (v) => setState(() => _hasKids = v),
           ),
           if (_hasKids)
             TextField(
               controller: _kidsController,
-              decoration: const InputDecoration(
-                labelText: "Kids' names",
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.profileKidsNames,
+                border: const OutlineInputBorder(),
               ),
             ),
           const SizedBox(height: 16),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Pets'),
+            title: Text(l10n.profilePets),
             value: _hasPets,
             onChanged: (v) => setState(() => _hasPets = v),
           ),
           if (_hasPets)
             TextField(
               controller: _petsController,
-              decoration: const InputDecoration(
-                labelText: "Pets' names",
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.profilePetsNames,
+                border: const OutlineInputBorder(),
               ),
             ),
           const SizedBox(height: 24),
-          FilledButton(onPressed: _save, child: const Text('Save profile')),
+          FilledButton(onPressed: _save, child: Text(l10n.profileSaveButton)),
           const Divider(height: 48),
-          Text('Things I remember about you', style: Theme.of(context).textTheme.titleMedium),
+          Text(l10n.profileFactsSectionTitle, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Text(
-            'Add short facts, like "I like pizza" or "My mother\'s name is Maria".',
+            l10n.profileFactsHint,
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
@@ -189,9 +230,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Expanded(
                 child: TextField(
                   controller: _factController,
-                  decoration: const InputDecoration(
-                    hintText: 'Add to profile...',
-                    border: OutlineInputBorder(),
+                  decoration: InputDecoration(
+                    hintText: l10n.profileAddToProfileHint,
+                    border: const OutlineInputBorder(),
                   ),
                   onSubmitted: (_) => _addFact(),
                 ),
