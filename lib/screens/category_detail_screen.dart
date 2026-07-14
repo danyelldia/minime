@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/note_task.dart';
 import '../providers/category_provider.dart';
 import '../providers/note_task_provider.dart';
@@ -23,13 +24,14 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final categoryProvider = context.watch<CategoryProvider>();
     final taskProvider = context.watch<NoteTaskProvider>();
     final tagProvider = context.watch<PriorityTagProvider>();
 
     final category = categoryProvider.byId(widget.categoryId);
     if (category == null) {
-      return const Scaffold(body: Center(child: Text('This category no longer exists')));
+      return Scaffold(body: Center(child: Text(l10n.categoryGone)));
     }
 
     final subcategories = categoryProvider.subcategoriesOf(category.id);
@@ -44,7 +46,7 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(category.name),
-        backgroundColor: category.color.withOpacity(0.15),
+        backgroundColor: category.color.withValues(alpha: 0.15),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_rounded),
@@ -75,7 +77,7 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
               spacing: 8,
               children: [
                 ChoiceChip(
-                  label: const Text('All'),
+                  label: Text(l10n.categoryAll),
                   selected: _selectedSubId == null,
                   onSelected: (_) => setState(() => _selectedSubId = null),
                 ),
@@ -87,7 +89,7 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
                     )),
                 ActionChip(
                   avatar: const Icon(Icons.add, size: 16),
-                  label: const Text('Subcategory'),
+                  label: Text(l10n.categorySubcategory),
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -104,7 +106,7 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Drag to reorder within a single category (pick one above).',
+                  l10n.categoryDragHint,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
@@ -112,7 +114,7 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
           Expanded(
             child: tasks.isEmpty
                 ? Center(
-                    child: Text('Nothing here yet', style: Theme.of(context).textTheme.bodyMedium),
+                    child: Text(l10n.categoryNothingHere, style: Theme.of(context).textTheme.bodyMedium),
                   )
                 : ReorderableListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -152,15 +154,14 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
   }
 
   void _confirmDelete(BuildContext context, String categoryId) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete this category?'),
-        content: const Text(
-          'This also deletes its subcategories and all notes/to-dos in them.',
-        ),
+        title: Text(l10n.categoryDeleteTitle),
+        content: Text(l10n.categoryDeleteBody),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.cancel)),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
@@ -168,7 +169,7 @@ class _CategoryDetailScreenState extends State<CategoryDetailScreen> {
               Navigator.pop(ctx);
               Navigator.pop(context);
             },
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
