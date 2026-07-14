@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/note_task.dart';
 import '../providers/note_task_provider.dart';
 import '../providers/priority_tag_provider.dart';
@@ -71,6 +72,7 @@ class _TodayScreenState extends State<TodayScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final taskProvider = context.watch<NoteTaskProvider>();
     final tagProvider = context.watch<PriorityTagProvider>();
 
@@ -103,7 +105,7 @@ class _TodayScreenState extends State<TodayScreen> {
     final remaining = _availableMinutes - plan.minutesUsed;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Today')),
+      appBar: AppBar(title: Text(l10n.todayTitle)),
       floatingActionButton: FloatingActionButton(
         onPressed: () => showQuickAddSheet(context, initialKind: QuickAddKind.task),
         child: const Icon(Icons.add_rounded),
@@ -116,22 +118,22 @@ class _TodayScreenState extends State<TodayScreen> {
             runSpacing: 8,
             children: [
               ChoiceChip(
-                label: const Text('Planned'),
+                label: Text(l10n.todayMoodPlanned),
                 selected: _mood == _Mood.normal,
                 onSelected: (_) => setState(() => _mood = _Mood.normal),
               ),
               ChoiceChip(
-                label: const Text('Something urgent'),
+                label: Text(l10n.todayMoodUrgent),
                 selected: _mood == _Mood.urgent,
                 onSelected: (_) => setState(() => _mood = _Mood.urgent),
               ),
               ChoiceChip(
-                label: const Text('Feeling lazy'),
+                label: Text(l10n.todayMoodLazy),
                 selected: _mood == _Mood.lazy,
                 onSelected: (_) => setState(() => _mood = _Mood.lazy),
               ),
               ChoiceChip(
-                label: const Text('Surprise me'),
+                label: Text(l10n.todayMoodRandom),
                 selected: _mood == _Mood.random,
                 onSelected: (_) {
                   setState(() => _mood = _Mood.random);
@@ -139,7 +141,7 @@ class _TodayScreenState extends State<TodayScreen> {
                 },
               ),
               ChoiceChip(
-                label: const Text('Watch a movie'),
+                label: Text(l10n.todayMoodMovie),
                 selected: _mood == _Mood.movie,
                 onSelected: (_) => setState(() => _mood = _Mood.movie),
               ),
@@ -155,7 +157,7 @@ class _TodayScreenState extends State<TodayScreen> {
                     const Icon(Icons.local_movies_rounded, size: 40),
                     const SizedBox(height: 12),
                     Text(
-                      'Sounds like a plan. Everything else can wait - enjoy your movie!',
+                      l10n.todayMovieCard,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
@@ -170,10 +172,10 @@ class _TodayScreenState extends State<TodayScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('How about this?', style: Theme.of(context).textTheme.titleMedium),
+                    Text(l10n.todayHowAboutThis, style: Theme.of(context).textTheme.titleMedium),
                     const SizedBox(height: 8),
                     if (_randomPick == null)
-                      const Text('Nothing pending right now - nice!')
+                      Text(l10n.todayNothingPending)
                     else
                       NoteTaskCard(
                         task: _randomPick!,
@@ -188,7 +190,7 @@ class _TodayScreenState extends State<TodayScreen> {
                     OutlinedButton.icon(
                       onPressed: () => _pickRandom(allPending),
                       icon: const Icon(Icons.casino_rounded),
-                      label: const Text('Pick another'),
+                      label: Text(l10n.todayPickAnother),
                     ),
                   ],
                 ),
@@ -202,7 +204,7 @@ class _TodayScreenState extends State<TodayScreen> {
                   children: [
                     const Icon(Icons.timer_rounded),
                     const SizedBox(width: 12),
-                    const Expanded(child: Text('Time available today (minutes):')),
+                    Expanded(child: Text(l10n.todayTimeAvailable)),
                     SizedBox(
                       width: 70,
                       child: TextField(
@@ -229,20 +231,23 @@ class _TodayScreenState extends State<TodayScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Used: ${plan.minutesUsed} / $_availableMinutes min '
-              '(${remaining >= 0 ? remaining : 0} min left)',
+              l10n.todayUsedMinutes(
+                plan.minutesUsed,
+                _availableMinutes,
+                remaining >= 0 ? remaining : 0,
+              ),
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
             Text(
-              'You can do today (${plan.scheduled.length})',
+              l10n.todayCanDo(plan.scheduled.length),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
             if (plan.scheduled.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('Nothing scheduled yet. Set durations on your to-dos.'),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(l10n.todayNothingScheduled),
               )
             else
               ...plan.scheduled.map((t) => Dismissible(
@@ -274,7 +279,7 @@ class _TodayScreenState extends State<TodayScreen> {
             if (plan.leftover.isNotEmpty) ...[
               const SizedBox(height: 24),
               Text(
-                "Doesn't fit today (${plan.leftover.length})",
+                l10n.todayDoesntFit(plan.leftover.length),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),
@@ -291,12 +296,12 @@ class _TodayScreenState extends State<TodayScreen> {
             if (plan.noDuration.isNotEmpty) ...[
               const SizedBox(height: 24),
               Text(
-                'No duration set (${plan.noDuration.length})',
+                l10n.todayNoDurationSet(plan.noDuration.length),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 4),
               Text(
-                'Set a duration on these to-dos to include them in the plan.',
+                l10n.todaySetDurationHint,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 8),
