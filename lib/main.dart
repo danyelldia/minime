@@ -11,10 +11,12 @@ import 'providers/note_task_provider.dart';
 import 'providers/priority_tag_provider.dart';
 import 'providers/profile_provider.dart';
 import 'screens/home_shell.dart';
+import 'screens/note_edit_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'services/home_widget_service.dart';
 import 'services/location_service.dart';
 import 'services/notification_service.dart';
+import 'services/tts_alarm_service.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -119,8 +121,12 @@ class MiniMeApp extends StatelessWidget {
 }
 
 /// Decides whether to show the first-run onboarding flow or jump
-/// straight into the app, and keeps the home screen widget / location
-/// reminders in sync whenever the app is opened or resumed.
+/// straight into the app, keeps the home screen widget / location
+/// reminders in sync whenever the app is opened or resumed, and handles
+/// deep-linking straight into a task's edit screen when the user taps
+/// the body of a reminder notification (either a cold start, via
+/// getInitialOpenTaskId, or while the app is already running, via the
+/// onOpenTask stream fed by native onNewIntent).
 class _AppRoot extends StatefulWidget {
   const _AppRoot();
 
@@ -130,11 +136,13 @@ class _AppRoot extends StatefulWidget {
 
 class _AppRootState extends State<_AppRoot> with WidgetsBindingObserver {
   bool _ready = false;
+  StreamSubscription<String>? _openTaskSub;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _openTaskSub = TtsAlarmService.instance.onOpenTask.listen(_openTask);
     _init();
   }
 
@@ -148,6 +156,36 @@ class _AppRootState extends State<_AppRoot> with WidgetsBindingObserver {
     if (!mounted) return;
     setState(() => _ready = true);
     _syncBackground();
+    _checkInitialOpenTask();
+  }
+
+  Future<void> _checkInitialOpenTask() async {
+    final taskId = await TtsAlarmService.instance.getInitialOpenTaskId();
+    if (taskId != null) {
+      _openTask(taskId);
+    }
+  }
+
+  Future<void> _openTask(String taskId) async {
+    if (!mounted) return;
+    final taskProvider = context.read<NoteTaskProvider>();
+    // Reload first - the task may just have been edited directly in the
+    // database by a native notification action (Done/Snooze/Not Today),
+    // or this may be a fresh cold start where the provider hasn't loaded
+    // from disk yet.
+    await taskProvider.load();
+    if (!mounted) return;
+    final task = taskProvider.byId(taskId);
+    if (task == null) return;
+    // Wait for the home screen to actually be on-screen (onboarding /
+    // first frame) before pushing, otherwise Navigator.push can silently
+    // no-op if called too early.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => NoteEditScreen(existing: task)),
+      );
+    });
   }
 
   void _syncBackground() {
@@ -165,6 +203,11 @@ class _AppRootState extends State<_AppRoot> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && _ready) {
+      // Native notification action buttons (Done/Snooze/Not Today) write
+      // straight to the SQLite database from Kotlin, bypassing this
+      // provider entirely - reload so the UI reflects those changes as
+      // soon as the user comes back to the app.
+      context.read<NoteTaskProvider>().load();
       _syncBackground();
     }
   }
@@ -172,6 +215,7 @@ class _AppRootState extends State<_AppRoot> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _openTaskSub?.cancel();
     super.dispose();
   }
 
