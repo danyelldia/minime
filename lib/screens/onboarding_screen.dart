@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/user_profile.dart';
 import '../providers/profile_provider.dart';
 import 'home_shell.dart';
@@ -15,6 +16,56 @@ class OnboardingScreen extends StatefulWidget {
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+/// Language-independent codes for maritalStatus, stored in the DB as
+/// plain strings so switching the app's language later never breaks the
+/// dropdown (only the displayed label is looked up via AppLocalizations).
+const List<String> _statusCodes = [
+  'single',
+  'relationship',
+  'married',
+  'complicated',
+  'prefer_not_to_say',
+];
+
+String _statusLabel(AppLocalizations l10n, String code) {
+  switch (code) {
+    case 'single':
+      return l10n.statusSingle;
+    case 'relationship':
+      return l10n.statusRelationship;
+    case 'married':
+      return l10n.statusMarried;
+    case 'complicated':
+      return l10n.statusComplicated;
+    case 'prefer_not_to_say':
+      return l10n.statusPreferNotToSay;
+    default:
+      return code;
+  }
+}
+
+/// Old app versions saved the literal English label as maritalStatus.
+/// Normalize any of that (or an already-valid code) into a code, so an
+/// existing profile never crashes the dropdown after this update.
+String? _normalizeStatus(String? raw) {
+  if (raw == null) return null;
+  if (_statusCodes.contains(raw)) return raw;
+  switch (raw.toLowerCase()) {
+    case 'single':
+      return 'single';
+    case 'in a relationship':
+      return 'relationship';
+    case 'married':
+      return 'married';
+    case "it's complicated":
+      return 'complicated';
+    case 'prefer not to say':
+      return 'prefer_not_to_say';
+    default:
+      return null;
+  }
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
@@ -76,22 +127,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  final _statusOptions = const [
-    'Single',
-    'In a relationship',
-    'Married',
-    'It\'s complicated',
-    'Prefer not to say',
-  ];
-
-  bool get _showsSpouseField =>
-      _maritalStatus == 'Married' || _maritalStatus == 'In a relationship';
+  bool get _showsSpouseField => _maritalStatus == 'married' || _maritalStatus == 'relationship';
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Hi, nice to meet you'),
+        title: Text(l10n.onboardingTitle),
         automaticallyImplyLeading: false,
       ),
       body: ListView(
@@ -100,38 +143,35 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           const Icon(Icons.emoji_people_rounded, size: 56),
           const SizedBox(height: 12),
           Text(
-            "I'm MiniMe, your personal organizer. Tell me a bit about "
-            "yourself so I can feel a little more like your assistant "
-            "and less like a stranger. Everything here is optional and "
-            "stays only on this phone.",
+            l10n.onboardingIntro,
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 24),
           TextField(
             controller: _nameController,
-            decoration: const InputDecoration(
-              labelText: 'What should I call you?',
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              labelText: l10n.onboardingNameLabel,
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
           ListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(_birthDate == null
-                ? 'Birthday (optional)'
-                : 'Birthday: ${_birthDate!.day}/${_birthDate!.month}/${_birthDate!.year}'),
+                ? l10n.onboardingBirthdayOptional
+                : l10n.onboardingBirthdayLabel('${_birthDate!.day}/${_birthDate!.month}/${_birthDate!.year}')),
             trailing: const Icon(Icons.cake_rounded),
             onTap: _pickBirthDate,
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            value: _maritalStatus,
-            decoration: const InputDecoration(
-              labelText: 'Relationship status (optional)',
-              border: OutlineInputBorder(),
+            value: _normalizeStatus(_maritalStatus),
+            decoration: InputDecoration(
+              labelText: l10n.onboardingRelationshipOptional,
+              border: const OutlineInputBorder(),
             ),
-            items: _statusOptions
-                .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+            items: _statusCodes
+                .map((code) => DropdownMenuItem(value: code, child: Text(_statusLabel(l10n, code))))
                 .toList(),
             onChanged: (v) => setState(() => _maritalStatus = v),
           ),
@@ -139,49 +179,49 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             const SizedBox(height: 16),
             TextField(
               controller: _spouseController,
-              decoration: const InputDecoration(
-                labelText: "Partner's name (optional)",
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.onboardingPartnerNameOptional,
+                border: const OutlineInputBorder(),
               ),
             ),
           ],
           const SizedBox(height: 16),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Do you have kids?'),
+            title: Text(l10n.onboardingHasKids),
             value: _hasKids,
             onChanged: (v) => setState(() => _hasKids = v),
           ),
           if (_hasKids)
             TextField(
               controller: _kidsController,
-              decoration: const InputDecoration(
-                labelText: "Kids' names (optional)",
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.onboardingKidsNamesOptional,
+                border: const OutlineInputBorder(),
               ),
             ),
           const SizedBox(height: 16),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Any pets?'),
+            title: Text(l10n.onboardingHasPets),
             value: _hasPets,
             onChanged: (v) => setState(() => _hasPets = v),
           ),
           if (_hasPets)
             TextField(
               controller: _petsController,
-              decoration: const InputDecoration(
-                labelText: "Pets' names (optional)",
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.onboardingPetsNamesOptional,
+                border: const OutlineInputBorder(),
               ),
             ),
           const SizedBox(height: 32),
           FilledButton(
             onPressed: _finish,
-            child: const Text("That's me, let's start"),
+            child: Text(l10n.onboardingFinishButton),
           ),
           const SizedBox(height: 8),
-          TextButton(onPressed: _skip, child: const Text('Skip for now')),
+          TextButton(onPressed: _skip, child: Text(l10n.onboardingSkip)),
         ],
       ),
     );
