@@ -142,19 +142,25 @@ jobs:
 
           # 2b) render the native TTS-alarm receiver + scheduler + persistent
           #     store + boot receiver (used for spoken reminders that work
-          #     even when the app is killed, and that survive a reboot).
-          for name in ["TtsAlarmScheduler", "TtsAlarmReceiver", "TtsAlarmStore", "TtsAlarmBootReceiver"]:
+          #     even when the app is killed, and that survive a reboot), plus
+          #     the notification-action-buttons receiver (Done/Snooze/Not
+          #     Today) that writes straight to the SQLite database.
+          for name in ["TtsAlarmScheduler", "TtsAlarmReceiver", "TtsAlarmStore", "TtsAlarmBootReceiver", "TtsNotificationActionReceiver"]:
               template = open(f"native/tts_alarm/{name}.kt.template").read()
               rendered = template.replace("__PACKAGE__", pkg_name)
               with open(os.path.join(pkg_dir, f"{name}.kt"), "w") as f:
                   f.write(rendered)
 
           # 2c) patch MainActivity.kt to expose a MethodChannel that Dart
-          #     uses to schedule/cancel the native TTS alarms.
+          #     uses to schedule/cancel the native TTS alarms, to read which
+          #     task (if any) a reminder notification tap should deep-link
+          #     into on cold start, and to forward the same info live via
+          #     onNewIntent when the app is already running.
           main_activity_content = open(main_activity).read()
           if "TTS_ALARM_CHANNEL" not in main_activity_content:
               main_activity_content = re.sub(
                   r"import io\.flutter\.embedding\.android\.FlutterActivity",
+                  "import android.content.Intent\n"
                   "import io.flutter.embedding.android.FlutterActivity\n"
                   "import io.flutter.embedding.engine.FlutterEngine\n"
                   "import io.flutter.plugin.common.MethodChannel",
@@ -163,17 +169,22 @@ jobs:
               new_class_body = (
                   "class MainActivity: FlutterActivity() {\n"
                   "    private val TTS_ALARM_CHANNEL = \"com.danyell.minime/tts_alarm\"\n"
+                  "    private var ttsAlarmChannel: MethodChannel? = null\n"
                   "\n"
                   "    override fun configureFlutterEngine(flutterEngine: FlutterEngine) {\n"
                   "        super.configureFlutterEngine(flutterEngine)\n"
-                  "        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, TTS_ALARM_CHANNEL).setMethodCallHandler { call, result ->\n"
+                  "        val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, TTS_ALARM_CHANNEL)\n"
+                  "        ttsAlarmChannel = channel\n"
+                  "        channel.setMethodCallHandler { call, result ->\n"
                   "            when (call.method) {\n"
                   "                \"scheduleTtsAlarm\" -> {\n"
                   "                    val id = (call.argument<Any>(\"id\") as? Number)?.toInt() ?: 0\n"
                   "                    val title = call.argument<String>(\"title\") ?: \"\"\n"
                   "                    val message = call.argument<String>(\"message\") ?: title\n"
                   "                    val triggerAtMillis = (call.argument<Any>(\"triggerAtMillis\") as? Number)?.toLong() ?: 0L\n"
-                  "                    TtsAlarmScheduler.schedule(applicationContext, id, title, message, triggerAtMillis)\n"
+                  "                    val taskId = call.argument<String>(\"taskId\")\n"
+                  "                    val voiceEnabled = call.argument<Boolean>(\"voiceEnabled\") ?: true\n"
+                  "                    TtsAlarmScheduler.schedule(applicationContext, id, title, message, triggerAtMillis, taskId, voiceEnabled)\n"
                   "                    result.success(null)\n"
                   "                }\n"
                   "                \"cancelTtsAlarm\" -> {\n"
@@ -181,8 +192,22 @@ jobs:
                   "                    TtsAlarmScheduler.cancel(applicationContext, id)\n"
                   "                    result.success(null)\n"
                   "                }\n"
+                  "                \"getInitialOpenTaskId\" -> {\n"
+                  "                    val taskId = intent?.getStringExtra(\"open_task_id\")\n"
+                  "                    intent?.removeExtra(\"open_task_id\")\n"
+                  "                    result.success(taskId)\n"
+                  "                }\n"
                   "                else -> result.notImplemented()\n"
                   "            }\n"
+                  "        }\n"
+                  "    }\n"
+                  "\n"
+                  "    override fun onNewIntent(intent: Intent) {\n"
+                  "        super.onNewIntent(intent)\n"
+                  "        setIntent(intent)\n"
+                  "        val taskId = intent.getStringExtra(\"open_task_id\")\n"
+                  "        if (taskId != null) {\n"
+                  "            ttsAlarmChannel?.invokeMethod(\"onOpenTask\", mapOf(\"taskId\" to taskId))\n"
                   "        }\n"
                   "    }\n"
                   "}\n"
@@ -225,6 +250,18 @@ jobs:
               idx = manifest.index(">", manifest.index("<manifest ")) + 1
               manifest = manifest[:idx] + "\n" + permissions + manifest[idx:]
 
+          # Ensure MainActivity is singleTop, so a notification tap while the
+          # app is already running reuses the existing instance and calls
+          # onNewIntent (needed for the tap-opens-exact-task deep link),
+          # instead of tearing it down and creating a fresh one.
+          activity_match = re.search(r"<activity\s+android:name=\"\.MainActivity\"[^>]*>", manifest)
+          if activity_match and "android:launchMode" not in activity_match.group(0):
+              patched_tag = activity_match.group(0).replace(
+                  "android:name=\".MainActivity\"",
+                  "android:name=\".MainActivity\"\n            android:launchMode=\"singleTop\"",
+              )
+              manifest = manifest.replace(activity_match.group(0), patched_tag)
+
           receiver_block = (
               "        <receiver android:name=\"" + pkg_name + ".TodayWidgetProvider\" android:exported=\"true\">\n"
               "            <intent-filter>\n"
@@ -242,6 +279,12 @@ jobs:
           )
           if "TtsAlarmReceiver" not in manifest:
               manifest = manifest.replace("</application>", tts_receiver_block + "    </application>")
+
+          tts_action_receiver_block = (
+              "        <receiver android:name=\"" + pkg_name + ".TtsNotificationActionReceiver\" android:exported=\"false\" />\n"
+          )
+          if "TtsNotificationActionReceiver" not in manifest:
+              manifest = manifest.replace("</application>", tts_action_receiver_block + "    </application>")
 
           tts_boot_receiver_block = (
               "        <receiver android:name=\"" + pkg_name + ".TtsAlarmBootReceiver\" android:exported=\"true\">\n"
