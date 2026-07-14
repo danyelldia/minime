@@ -2,7 +2,6 @@
 // application package before compilation.
 package __PACKAGE__
 
-import android.app.Notification
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -27,19 +26,24 @@ import java.util.Locale
 /// process was previously killed.
 ///
 /// De asemenea afiseaza notificarea vizuala DIRECT de aici (nu doar prin
-/// flutter_local_notifications), pentru ca am observat pe teren ca alarma
-/// noastra nativa (AlarmManager + acest receiver) chiare sigur, in timp ce
-/// alarma programata separat de plugin-ul Flutter pentru banner-ul vizual
-/// poate sa nu se declanseze deloc pe unele telefoane (ex. ColorOS/Oppo)
-/// cand aplicatia e in fundal si ecranul e blocat. Folosind acelasi canal
+/// flutter_local_notifications), cu butoane Done / Snooze 15m / Not Today
+/// si cu deschidere directa la task-ul exact daca userul apasa pe corpul
+/// notificarii - pentru ca am observat pe teren ca alarma noastra nativa
+/// (AlarmManager + acest receiver) chiama sigur, in timp ce alarma
+/// programata separat de plugin-ul Flutter pentru banner-ul vizual poate
+/// sa nu se declanseze deloc pe unele telefoane (ex. ColorOS/Oppo) cand
+/// aplicatia e in fundal si ecranul e blocat. Folosind acelasi canal
 /// ("minime_reminders", creat deja de partea de Dart la fiecare pornire a
 /// aplicatiei) garantam ca cel putin un banner cu titlul si mesajul
-/// task-ului apare mereu, exact in momentul in care suna si vocea.
+/// task-ului apare mereu, exact in momentul in care suna si vocea (daca
+/// vocea e activata pentru task-ul respectiv).
 class TtsAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val title = intent.getStringExtra("tts_title")
         val message = intent.getStringExtra("tts_message")?.takeIf { it.isNotBlank() } ?: title
         val id = intent.getIntExtra("tts_id", -1)
+        val taskId = intent.getStringExtra("tts_task_id")
+        val voiceEnabled = intent.getBooleanExtra("tts_voice_enabled", true)
         // A alarma tocmai a sunat, deci nu mai e "pending" - o scoatem din
         // storage-ul persistent ca sa nu fie reprogramata gresit dupa un
         // eventual restart ulterior al telefonului.
@@ -47,6 +51,20 @@ class TtsAlarmReceiver : BroadcastReceiver() {
             TtsAlarmStore.remove(context, id)
         }
         if (message.isNullOrBlank()) return
+
+        // Afiseaza notificarea vizuala imediat, indiferent daca TTS-ul
+        // reuseste sau nu - asta e partea garantata sa se vada pe ecran.
+        try {
+            showNotification(context, id, title ?: "MiniMe", message, taskId, voiceEnabled)
+        } catch (e: Exception) {
+            // best-effort - nu lasam un eventual crash aici sa opreasca vocea.
+        }
+
+        if (!voiceEnabled) {
+            // Userul a dezactivat notificarea vocala pentru acest task -
+            // banner-ul de mai sus e suficient, nu mai pornim TTS.
+            return
+        }
 
         // Pe multe telefoane (inclusiv ColorOS/Oppo), cand ecranul e stins
         // si telefonul e blocat, CPU-ul poate readormi inainte ca
@@ -63,14 +81,6 @@ class TtsAlarmReceiver : BroadcastReceiver() {
             wakeLock?.acquire(20_000L)
         } catch (e: Exception) {
             // ignore - mai bine incercam sa vorbim oricum decat sa crapam aici
-        }
-
-        // Afiseaza notificarea vizuala imediat, indiferent daca TTS-ul
-        // reuseste sau nu - asta e partea garantata sa se vada pe ecran.
-        try {
-            showNotification(context, id, title ?: "MiniMe", message)
-        } catch (e: Exception) {
-            // best-effort - nu lasam un eventual crash aici sa opreasca vocea.
         }
 
         val pendingResult = goAsync()
@@ -121,15 +131,50 @@ class TtsAlarmReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun showNotification(context: Context, id: Int, title: String, message: String) {
+    private fun actionPendingIntent(
+        context: Context,
+        requestCode: Int,
+        actionType: String,
+        notificationId: Int,
+        taskId: String?,
+        title: String,
+        message: String,
+        voiceEnabled: Boolean,
+    ): PendingIntent {
+        val intent = Intent(context, TtsNotificationActionReceiver::class.java).apply {
+            action = "com.danyell.minime.NOTIFICATION_ACTION_$actionType"
+            putExtra("action_type", actionType)
+            putExtra("notification_id", notificationId)
+            putExtra("task_id", taskId)
+            putExtra("tts_title", title)
+            putExtra("tts_message", message)
+            putExtra("tts_voice_enabled", voiceEnabled)
+        }
+        val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+            (if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+        return PendingIntent.getBroadcast(context, requestCode, intent, flags)
+    }
+
+    private fun showNotification(
+        context: Context,
+        id: Int,
+        title: String,
+        message: String,
+        taskId: String?,
+        voiceEnabled: Boolean,
+    ) {
         val appContext = context.applicationContext
+        val notifId = if (id != -1) id else 0
         val launchIntent = appContext.packageManager.getLaunchIntentForPackage(appContext.packageName)
         launchIntent?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        if (taskId != null) {
+            launchIntent?.putExtra("open_task_id", taskId)
+        }
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or
             (if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
         val contentPendingIntent = PendingIntent.getActivity(
             appContext,
-            if (id != -1) id else 0,
+            notifId,
             launchIntent ?: Intent(),
             flags,
         )
@@ -139,9 +184,10 @@ class TtsAlarmReceiver : BroadcastReceiver() {
         } catch (e: Exception) {
             android.R.drawable.ic_popup_reminder
         }
+        val iconRes = if (smallIconRes != 0) smallIconRes else android.R.drawable.ic_popup_reminder
 
         val builder = NotificationCompat.Builder(appContext, "minime_reminders")
-            .setSmallIcon(if (smallIconRes != 0) smallIconRes else android.R.drawable.ic_popup_reminder)
+            .setSmallIcon(iconRes)
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -151,8 +197,17 @@ class TtsAlarmReceiver : BroadcastReceiver() {
             .setContentIntent(contentPendingIntent)
             .setFullScreenIntent(contentPendingIntent, true)
 
+        if (taskId != null) {
+            val doneIntent = actionPendingIntent(appContext, notifId, "DONE", notifId, taskId, title, message, voiceEnabled)
+            val snoozeIntent = actionPendingIntent(appContext, notifId, "SNOOZE", notifId, taskId, title, message, voiceEnabled)
+            val notTodayIntent = actionPendingIntent(appContext, notifId, "NOT_TODAY", notifId, taskId, title, message, voiceEnabled)
+            builder.addAction(iconRes, "Done", doneIntent)
+            builder.addAction(iconRes, "Snooze 15m", snoozeIntent)
+            builder.addAction(iconRes, "Not Today", notTodayIntent)
+        }
+
         try {
-            NotificationManagerCompat.from(appContext).notify(if (id != -1) id else 0, builder.build())
+            NotificationManagerCompat.from(appContext).notify(notifId, builder.build())
         } catch (e: SecurityException) {
             // Permisiunea de notificari nu e acordata - nu putem afisa
             // banner-ul, dar vocea de mai jos tot va suna.
