@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/history_entry.dart';
 import '../providers/history_provider.dart';
 import '../providers/note_task_provider.dart';
@@ -21,18 +22,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
     });
   }
 
-  String _actionLabel(HistoryAction a) {
+  String _actionLabel(AppLocalizations l10n, HistoryAction a) {
     switch (a) {
       case HistoryAction.created:
-        return 'Created';
+        return l10n.historyActionCreated;
       case HistoryAction.done:
-        return 'Marked Done';
+        return l10n.historyActionDone;
       case HistoryAction.snoozed:
-        return 'Snoozed';
+        return l10n.historyActionSnoozed;
       case HistoryAction.notToday:
-        return 'Not Today';
+        return l10n.historyActionNotToday;
       case HistoryAction.movedTomorrow:
-        return 'Moved to tomorrow';
+        return l10n.historyActionMovedTomorrow;
     }
   }
 
@@ -53,26 +54,29 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final history = context.watch<HistoryProvider>();
     final taskProvider = context.watch<NoteTaskProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('History')),
+      appBar: AppBar(title: Text(l10n.historyTitle)),
       body: history.entries.isEmpty
-          ? const Center(child: Text('No events yet'))
+          ? Center(child: Text(l10n.historyNoEvents))
           : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: history.entries.length,
               itemBuilder: (context, index) {
                 final entry = history.entries[index];
-                var taskTitle = 'Deleted task';
+                var taskTitle = l10n.historyDeletedTask;
                 for (final t in taskProvider.tasks) {
                   if (t.id == entry.noteTaskId) {
                     taskTitle = t.title;
                     break;
                   }
                 }
-                final snoozeText = entry.snoozeMinutes != null ? ' (${entry.snoozeMinutes} min)' : '';
+                final snoozeText = entry.snoozeMinutes != null
+                    ? l10n.historySnoozeMinutes(entry.snoozeMinutes!)
+                    : '';
                 final ts = entry.timestamp;
                 final timeText = '${ts.day}/${ts.month} '
                     '${ts.hour.toString().padLeft(2, '0')}:${ts.minute.toString().padLeft(2, '0')}';
@@ -80,7 +84,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 return ListTile(
                   leading: Icon(_actionIcon(entry.action)),
                   title: Text(taskTitle),
-                  subtitle: Text('${_actionLabel(entry.action)}$snoozeText - $timeText'),
+                  subtitle: Text(l10n.historyEntryLine(
+                    _actionLabel(l10n, entry.action),
+                    snoozeText,
+                    timeText,
+                  )),
                 );
               },
             ),
