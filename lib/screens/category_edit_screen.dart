@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/category.dart';
 import '../providers/category_provider.dart';
 import '../widgets/color_swatch_picker.dart';
@@ -61,32 +62,33 @@ class _CategoryEditScreenState extends State<CategoryEditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final isSubcategory = widget.parentId != null || widget.existing?.parentId != null;
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.existing != null
-            ? 'Edit category'
+            ? l10n.categoryEditTitleEdit
             : isSubcategory
-                ? 'New subcategory'
-                : 'New category'),
+                ? l10n.categoryEditTitleNewSub
+                : l10n.categoryEditTitleNew),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           TextField(
             controller: _nameController,
-            decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder()),
+            decoration: InputDecoration(labelText: l10n.billEditName, border: const OutlineInputBorder()),
           ),
           const SizedBox(height: 24),
-          Text('Icon', style: Theme.of(context).textTheme.titleSmall),
+          Text(l10n.categoryEditIcon, style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),
           IconPickerGrid(selected: _icon, onChanged: (i) => setState(() => _icon = i)),
           const SizedBox(height: 24),
-          Text('Color', style: Theme.of(context).textTheme.titleSmall),
+          Text(l10n.categoryEditColor, style: Theme.of(context).textTheme.titleSmall),
           const SizedBox(height: 8),
           ColorSwatchPicker(selected: _color, onChanged: (c) => setState(() => _color = c)),
           const SizedBox(height: 32),
-          FilledButton(onPressed: _save, child: const Text('Save')),
+          FilledButton(onPressed: _save, child: Text(l10n.save)),
         ],
       ),
     );
