@@ -28,7 +28,15 @@ class TtsAlarmBootReceiver : BroadcastReceiver() {
         val alarms = TtsAlarmStore.all(context)
         for ((id, entry) in alarms) {
             if (entry.triggerAtMillis > now) {
-                TtsAlarmScheduler.schedule(context, id, entry.title, entry.message, entry.triggerAtMillis)
+                TtsAlarmScheduler.schedule(
+                    context,
+                    id,
+                    entry.title,
+                    entry.message,
+                    entry.triggerAtMillis,
+                    entry.taskId,
+                    entry.voiceEnabled,
+                )
             } else {
                 TtsAlarmStore.remove(context, id)
             }
