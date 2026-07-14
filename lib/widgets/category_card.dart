@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/category.dart';
 
 class CategoryCard extends StatelessWidget {
@@ -16,6 +17,7 @@ class CategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -26,7 +28,7 @@ class CategoryCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               CircleAvatar(
-                backgroundColor: category.color.withOpacity(0.15),
+                backgroundColor: category.color.withValues(alpha: 0.15),
                 foregroundColor: category.color,
                 child: Icon(category.icon),
               ),
@@ -34,7 +36,7 @@ class CategoryCard extends StatelessWidget {
               Text(category.name, style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 4),
               Text(
-                '$noteCount notes/to-dos',
+                l10n.categoryCardNotesCount(noteCount),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
