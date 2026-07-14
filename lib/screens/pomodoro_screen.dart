@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/note_task.dart';
 import '../services/tts_service.dart';
 
@@ -39,6 +40,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
   void _start() {
     if (_running) return;
     setState(() => _running = true);
+    final l10n = AppLocalizations.of(context)!;
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (_remainingSeconds <= 1) {
         t.cancel();
@@ -46,7 +48,7 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
           _remainingSeconds = 0;
           _running = false;
         });
-        TtsService.instance.speak('Time is up. Focus session complete.');
+        TtsService.instance.speak(l10n.pomodoroSpeakDone);
         _showDoneDialog();
       } else {
         setState(() => _remainingSeconds -= 1);
@@ -68,15 +70,16 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
   }
 
   void _showDoneDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Focus session complete'),
+        title: Text(l10n.pomodoroDoneTitle),
         content: Text(widget.task != null
-            ? 'Nice work on "${widget.task!.title}".'
-            : 'Nice work! Take a short break.'),
+            ? l10n.pomodoroDoneWithTask(widget.task!.title)
+            : l10n.pomodoroDoneNoTask),
         actions: [
-          FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+          FilledButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.ok)),
         ],
       ),
     );
@@ -90,10 +93,11 @@ class _PomodoroScreenState extends State<PomodoroScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final progress = _totalSeconds == 0 ? 0.0 : 1 - (_remainingSeconds / _totalSeconds);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Focus timer')),
+      appBar: AppBar(title: Text(l10n.pomodoroTitle)),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
