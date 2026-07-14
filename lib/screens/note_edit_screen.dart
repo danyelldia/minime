@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/note_task.dart';
 import '../providers/category_provider.dart';
 import '../providers/note_task_provider.dart';
@@ -151,23 +152,24 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
   }
 
   Future<_ExitAction?> _confirmDiscardDialog() {
+    final l10n = AppLocalizations.of(context)!;
     return showDialog<_ExitAction>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Save changes?'),
-        content: const Text('You have unsaved changes. Do you want to save them before leaving?'),
+        title: Text(l10n.noteEditSaveChangesTitle),
+        content: Text(l10n.noteEditSaveChangesBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(_ExitAction.discard),
-            child: const Text('Discard'),
+            child: Text(l10n.discard),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(_ExitAction.save),
-            child: const Text('Save'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -220,7 +222,7 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
     if (position == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Couldn't get your location. Check location permission.")),
+          SnackBar(content: Text(AppLocalizations.of(context)!.noteEditCouldNotGetLocation)),
         );
       }
       return;
@@ -247,7 +249,7 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
       if (mounted) {
         setState(() => _saving = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not save - please try again.')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.noteEditCouldNotSave)),
         );
       }
     }
@@ -367,6 +369,7 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final categoryProvider = context.watch<CategoryProvider>();
     final tagProvider = context.watch<PriorityTagProvider>();
     final taskProvider = context.watch<NoteTaskProvider>();
@@ -389,7 +392,7 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(widget.existing != null ? 'Edit' : 'Add'),
+          title: Text(widget.existing != null ? l10n.noteEditTitleEdit : l10n.noteEditTitleAdd),
           actions: [
             if (widget.existing != null)
               IconButton(icon: const Icon(Icons.delete_outline_rounded), onPressed: _delete),
@@ -399,16 +402,16 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             SegmentedButton<ItemType>(
-              segments: const [
+              segments: [
                 ButtonSegment(
                   value: ItemType.note,
-                  label: Text('Note'),
-                  icon: Icon(Icons.sticky_note_2_rounded),
+                  label: Text(l10n.noteEditNote),
+                  icon: const Icon(Icons.sticky_note_2_rounded),
                 ),
                 ButtonSegment(
                   value: ItemType.todo,
-                  label: Text('To-Do'),
-                  icon: Icon(Icons.check_box_rounded),
+                  label: Text(l10n.noteEditTodo),
+                  icon: const Icon(Icons.check_box_rounded),
                 ),
               ],
               selected: {_type},
@@ -417,21 +420,21 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
             const SizedBox(height: 16),
             TextField(
               controller: _titleController,
-              decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder()),
+              decoration: InputDecoration(labelText: l10n.noteEditTitle, border: const OutlineInputBorder()),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: _descController,
               maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Description (optional)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.noteEditDescription,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               value: allCategories.any((c) => c.id == _categoryId) ? _categoryId : null,
-              decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
+              decoration: InputDecoration(labelText: l10n.noteEditCategory, border: const OutlineInputBorder()),
               items: allCategories.map((c) {
                 final prefix = c.isMainCategory ? '' : '  -- ';
                 return DropdownMenuItem(value: c.id, child: Text('$prefix${c.name}'));
@@ -441,12 +444,12 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
             const SizedBox(height: 16),
             DropdownButtonFormField<String?>(
               value: _priorityTagId,
-              decoration: const InputDecoration(
-                labelText: 'Priority (optional)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: l10n.noteEditPriority,
+                border: const OutlineInputBorder(),
               ),
               items: [
-                const DropdownMenuItem<String?>(value: null, child: Text('None')),
+                DropdownMenuItem<String?>(value: null, child: Text(l10n.none)),
                 ...tagProvider.tags.map(
                   (t) => DropdownMenuItem<String?>(value: t.id, child: Text(t.label)),
                 ),
@@ -454,7 +457,7 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
               onChanged: (v) => setState(() => _priorityTagId = v),
             ),
             const SizedBox(height: 16),
-            Text('Tags', style: Theme.of(context).textTheme.titleSmall),
+            Text(l10n.noteEditTags, style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -468,7 +471,7 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
                   width: 140,
                   child: TextField(
                     controller: _tagController,
-                    decoration: const InputDecoration(hintText: 'Add tag', isDense: true),
+                    decoration: InputDecoration(hintText: l10n.noteEditAddTag, isDense: true),
                     onSubmitted: (_) => _addTag(),
                   ),
                 ),
@@ -480,7 +483,7 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
                 Expanded(
                   child: SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Urgent'),
+                    title: Text(l10n.noteEditUrgent),
                     value: _isUrgent,
                     onChanged: (v) => setState(() => _isUrgent = v),
                   ),
@@ -488,7 +491,7 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
                 Expanded(
                   child: SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Important'),
+                    title: Text(l10n.noteEditImportant),
                     value: _isImportant,
                     onChanged: (v) => setState(() => _isImportant = v),
                   ),
@@ -496,7 +499,7 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
               ],
             ),
             Text(
-              'Used by the Eisenhower Matrix view on the Today screen.',
+              l10n.noteEditEisenhowerHint,
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 8),
@@ -508,9 +511,9 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
                     child: TextField(
                       controller: _durationController,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(
-                        labelText: 'Estimated duration',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: l10n.noteEditEstimatedDuration,
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                   ),
@@ -519,10 +522,10 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
                     child: DropdownButtonFormField<String>(
                       value: _durationUnit,
                       decoration: const InputDecoration(border: OutlineInputBorder()),
-                      items: const [
-                        DropdownMenuItem(value: 'min', child: Text('minutes')),
-                        DropdownMenuItem(value: 'hour', child: Text('hours')),
-                        DropdownMenuItem(value: 'day', child: Text('days')),
+                      items: [
+                        DropdownMenuItem(value: 'min', child: Text(l10n.noteEditMinutes)),
+                        DropdownMenuItem(value: 'hour', child: Text(l10n.noteEditHours)),
+                        DropdownMenuItem(value: 'day', child: Text(l10n.noteEditDays)),
                       ],
                       onChanged: (v) => setState(() => _durationUnit = v ?? 'min'),
                     ),
@@ -534,16 +537,16 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               title: Text(_dueDate == null
-                  ? 'No due date'
-                  : 'Due date: ${_dueDate!.day}/${_dueDate!.month}/${_dueDate!.year}'),
+                  ? l10n.noteEditNoDueDate
+                  : l10n.noteEditDueDateLabel('${_dueDate!.day}/${_dueDate!.month}/${_dueDate!.year}')),
               trailing: const Icon(Icons.calendar_month_rounded),
               onTap: _pickDueDate,
             ),
             const Divider(height: 32),
-            Text('Reminder notification', style: Theme.of(context).textTheme.titleSmall),
+            Text(l10n.noteEditReminderSection, style: Theme.of(context).textTheme.titleSmall),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Enable reminder'),
+              title: Text(l10n.noteEditEnableReminder),
               value: _reminderTimeOfDay != null,
               onChanged: (v) => setState(() {
                 _reminderTimeOfDay = v ? (_reminderTimeOfDay ?? TimeOfDay.now()) : null;
@@ -553,52 +556,51 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
             if (_reminderTimeOfDay != null) ...[
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text('Time: ${_reminderTimeOfDay!.format(context)}'),
+                title: Text(l10n.noteEditTimeLabel(_reminderTimeOfDay!.format(context))),
                 trailing: const Icon(Icons.access_time_rounded),
                 onTap: _pickReminderTime,
               ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Repeat daily'),
+                title: Text(l10n.noteEditRepeatDaily),
                 value: _repeatDaily,
                 onChanged: (v) => setState(() => _repeatDaily = v),
               ),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Allow voice notification'),
-                subtitle: const Text('Speaks the reminder aloud. Turn off for a silent banner only.'),
+                title: Text(l10n.noteEditAllowVoice),
+                subtitle: Text(l10n.noteEditAllowVoiceSub),
                 value: _voiceNotificationEnabled,
                 onChanged: (v) => setState(() => _voiceNotificationEnabled = v),
               ),
               Text(
-                'The notification comes with sound and quick actions: Done, '
-                'Snooze 15m, Not Today.',
+                l10n.noteEditNotificationActionsHint,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
             const Divider(height: 32),
-            Text('Location reminder', style: Theme.of(context).textTheme.titleSmall),
+            Text(l10n.noteEditLocationSection, style: Theme.of(context).textTheme.titleSmall),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Remind me when I\'m near a place'),
+              title: Text(l10n.noteEditRemindNearPlace),
               value: _locationEnabled,
               onChanged: (v) => setState(() => _locationEnabled = v),
             ),
             if (_locationEnabled) ...[
               TextField(
                 controller: _locationNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Place name (e.g. Home, Office)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.noteEditPlaceName,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _radiusController,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Radius (meters)',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.noteEditRadius,
+                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 12),
@@ -606,18 +608,18 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
                 onPressed: _fetchingLocation ? null : _useCurrentLocation,
                 icon: const Icon(Icons.my_location_rounded),
                 label: Text(_fetchingLocation
-                    ? 'Getting location...'
+                    ? l10n.noteEditGettingLocation
                     : _locationLat != null
-                        ? 'Location set (tap to update)'
-                        : 'Use my current location'),
+                        ? l10n.noteEditLocationSetUpdate
+                        : l10n.noteEditUseCurrentLocation),
               ),
               Text(
-                'Checked whenever you open or resume MiniMe while near this spot.',
+                l10n.noteEditLocationCheckHint,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
             const SizedBox(height: 24),
-            Text('Urgency color (optional)', style: Theme.of(context).textTheme.titleSmall),
+            Text(l10n.noteEditUrgencyColor, style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 8),
             ColorSwatchPicker(
               selected: _urgencyColor,
@@ -625,7 +627,7 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
             ),
             if (canHaveSubtasks) ...[
               const Divider(height: 32),
-              Text('Subtasks', style: Theme.of(context).textTheme.titleSmall),
+              Text(l10n.noteEditSubtasks, style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 8),
               ...subtasks.map((sub) => CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
@@ -643,7 +645,7 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
                   Expanded(
                     child: TextField(
                       controller: _subtaskController,
-                      decoration: const InputDecoration(hintText: 'Add subtask'),
+                      decoration: InputDecoration(hintText: l10n.noteEditAddSubtask),
                       onSubmitted: (_) => _addSubtask(),
                     ),
                   ),
@@ -660,7 +662,7 @@ class _NoteEditScreenState extends State<NoteEditScreen> {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('Save'),
+                  : Text(l10n.save),
             ),
           ],
         ),
