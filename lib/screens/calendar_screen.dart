@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/bill_item.dart';
 import '../models/note_task.dart';
 import '../providers/bill_provider.dart';
@@ -42,6 +43,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final tasks = context.watch<NoteTaskProvider>().tasks;
     final bills = context.watch<BillProvider>().items;
 
@@ -50,7 +52,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Calendar')),
+      appBar: AppBar(title: Text(l10n.calendarTitle)),
       body: Column(
         children: [
           TableCalendar<Object>(
@@ -82,7 +84,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
           const Divider(height: 1),
           Expanded(
             child: (dayTasks.isEmpty && dayBills.isEmpty)
-                ? const Center(child: Text('Nimic in ziua asta'))
+                ? Center(child: Text(l10n.calendarNothingToday))
                 : ListView(
                     children: [
                       ...dayTasks.map((t) => ListTile(
@@ -103,7 +105,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               b.isSettled ? Icons.check_circle_rounded : Icons.receipt_long_rounded,
                             ),
                             title: Text(b.name),
-                            subtitle: Text('${b.amount.toStringAsFixed(2)} lei'),
+                            subtitle: Text(l10n.billCardAmount(b.amount.toStringAsFixed(2))),
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(builder: (_) => BillEditScreen(existing: b)),
