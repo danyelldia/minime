@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import 'bills_screen.dart';
 import 'calendar_screen.dart';
 import 'dashboard_screen.dart';
@@ -29,17 +30,18 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: _tabs[_index],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => setState(() => _index = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.dashboard_rounded), label: 'Dashboard'),
-          NavigationDestination(icon: Icon(Icons.checklist_rounded), label: 'Notes'),
-          NavigationDestination(icon: Icon(Icons.receipt_long_rounded), label: 'Bills'),
-          NavigationDestination(icon: Icon(Icons.calendar_month_rounded), label: 'Calendar'),
-          NavigationDestination(icon: Icon(Icons.today_rounded), label: 'Today'),
+        destinations: [
+          NavigationDestination(icon: const Icon(Icons.dashboard_rounded), label: l10n.navDashboard),
+          NavigationDestination(icon: const Icon(Icons.checklist_rounded), label: l10n.navNotes),
+          NavigationDestination(icon: const Icon(Icons.receipt_long_rounded), label: l10n.navBills),
+          NavigationDestination(icon: const Icon(Icons.calendar_month_rounded), label: l10n.navCalendar),
+          NavigationDestination(icon: const Icon(Icons.today_rounded), label: l10n.navToday),
         ],
       ),
     );
