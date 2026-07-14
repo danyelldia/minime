@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/bill_item.dart';
 import '../providers/bill_provider.dart';
 import '../widgets/bill_card.dart';
@@ -12,16 +13,17 @@ class BillsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return DefaultTabController(
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Bills / Income / Shopping'),
-          bottom: const TabBar(
+          title: Text(l10n.billsTitle),
+          bottom: TabBar(
             tabs: [
-              Tab(text: 'Bills'),
-              Tab(text: 'Income'),
-              Tab(text: 'Shopping'),
+              Tab(text: l10n.billsTabBills),
+              Tab(text: l10n.billsTabIncome),
+              Tab(text: l10n.billsTabShopping),
             ],
           ),
         ),
@@ -57,19 +59,20 @@ class _BillList extends StatelessWidget {
   final BillCategory category;
   const _BillList({required this.category});
 
-  String _label(BillCategory c) {
+  String _label(AppLocalizations l10n, BillCategory c) {
     switch (c) {
       case BillCategory.bill:
-        return 'Total unpaid';
+        return l10n.billsTotalUnpaid;
       case BillCategory.income:
-        return 'Total expected';
+        return l10n.billsTotalExpected;
       case BillCategory.shopping:
-        return 'Total remaining cost';
+        return l10n.billsTotalRemaining;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final provider = context.watch<BillProvider>();
     final items = provider.byCategory(category);
     final total = items.where((b) => !b.isSettled).fold(0.0, (s, b) => s + b.amount);
@@ -81,9 +84,9 @@ class _BillList extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(_label(category), style: Theme.of(context).textTheme.titleSmall),
+              Text(_label(l10n, category), style: Theme.of(context).textTheme.titleSmall),
               Text(
-                '${total.toStringAsFixed(2)} RON',
+                l10n.billCardAmount(total.toStringAsFixed(2)),
                 style: Theme.of(context)
                     .textTheme
                     .titleMedium
@@ -94,7 +97,7 @@ class _BillList extends StatelessWidget {
         ),
         Expanded(
           child: items.isEmpty
-              ? const Center(child: Text('Nothing here yet'))
+              ? Center(child: Text(l10n.billsNothingHere))
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: items.length,
