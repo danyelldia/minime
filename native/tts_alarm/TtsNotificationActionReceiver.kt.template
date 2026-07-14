@@ -1,0 +1,96 @@
+// Placeholder replaced by the build workflow with MiniMe's real
+// application package before compilation.
+package __PACKAGE__
+
+import android.content.BroadcastReceiver
+import android.content.ContentValues
+import android.content.Context
+import android.content.Intent
+import android.database.sqlite.SQLiteDatabase
+import androidx.core.app.NotificationManagerCompat
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.UUID
+
+/// Handles taps on the Done / Snooze 15m / Not Today buttons shown on the
+/// native reminder notification (see TtsAlarmReceiver.showNotification).
+/// Writes directly to MiniMe's SQLite database - the exact same file that
+/// sqflite (the Dart side) reads and writes - so this works even if the
+/// Dart/Flutter engine isn't running, matching how the rest of this
+/// native alarm pipeline already behaves.
+class TtsNotificationActionReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context, intent: Intent) {
+        val actionType = intent.getStringExtra("action_type") ?: return
+        val notificationId = intent.getIntExtra("notification_id", -1)
+        val taskId = intent.getStringExtra("task_id")
+        val title = intent.getStringExtra("tts_title") ?: ""
+        val message = intent.getStringExtra("tts_message") ?: title
+        val voiceEnabled = intent.getBooleanExtra("tts_voice_enabled", true)
+
+        if (notificationId != -1) {
+            try {
+                NotificationManagerCompat.from(context).cancel(notificationId)
+            } catch (e: Exception) {
+                // ignore
+            }
+        }
+
+        if (taskId.isNullOrBlank()) return
+
+        val dbPath = context.getDatabasePath("minime.db").path
+        val db = try {
+            SQLiteDatabase.openDatabase(dbPath, null, SQLiteDatabase.OPEN_READWRITE)
+        } catch (e: Exception) {
+            null
+        } ?: return
+
+        try {
+            when (actionType) {
+                "DONE" -> {
+                    val values = ContentValues()
+                    values.put("isDone", 1)
+                    values.put("completedAt", isoNow())
+                    db.update("note_tasks", values, "id = ?", arrayOf(taskId))
+                    insertHistory(db, taskId, "done", null)
+                }
+                "SNOOZE" -> {
+                    insertHistory(db, taskId, "snoozed", 15)
+                    val newTrigger = System.currentTimeMillis() + 15 * 60 * 1000L
+                    TtsAlarmScheduler.schedule(context, notificationId, title, message, newTrigger, taskId, voiceEnabled)
+                }
+                "NOT_TODAY" -> {
+                    insertHistory(db, taskId, "notToday", null)
+                }
+            }
+        } catch (e: Exception) {
+            // best-effort - o eventuala eroare aici nu trebuie sa crape
+            // receiver-ul, notificarea a fost deja inchisa mai sus.
+        } finally {
+            try {
+                db.close()
+            } catch (e: Exception) {
+                // ignore
+            }
+        }
+    }
+
+    private fun insertHistory(db: SQLiteDatabase, taskId: String, action: String, snoozeMinutes: Int?) {
+        val values = ContentValues()
+        values.put("id", "h_${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(8)}")
+        values.put("noteTaskId", taskId)
+        values.put("action", action)
+        values.put("timestamp", isoNow())
+        if (snoozeMinutes != null) {
+            values.put("snoozeMinutes", snoozeMinutes)
+        } else {
+            values.putNull("snoozeMinutes")
+        }
+        db.insert("history_entries", null, values)
+    }
+
+    private fun isoNow(): String {
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.US)
+        return sdf.format(Date())
+    }
+}
