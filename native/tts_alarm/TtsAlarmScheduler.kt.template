@@ -18,25 +18,44 @@ object TtsAlarmScheduler {
     private const val EXTRA_TITLE = "tts_title"
     private const val EXTRA_MESSAGE = "tts_message"
     private const val EXTRA_ID = "tts_id"
+    private const val EXTRA_TASK_ID = "tts_task_id"
+    private const val EXTRA_VOICE_ENABLED = "tts_voice_enabled"
 
-    private fun pendingIntent(context: Context, id: Int, title: String?, message: String?): PendingIntent {
+    private fun pendingIntent(
+        context: Context,
+        id: Int,
+        title: String?,
+        message: String?,
+        taskId: String? = null,
+        voiceEnabled: Boolean = true,
+    ): PendingIntent {
         val intent = Intent(context, TtsAlarmReceiver::class.java).apply {
             putExtra(EXTRA_TITLE, title)
             putExtra(EXTRA_MESSAGE, message)
             putExtra(EXTRA_ID, id)
+            putExtra(EXTRA_TASK_ID, taskId)
+            putExtra(EXTRA_VOICE_ENABLED, voiceEnabled)
         }
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or
             (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
         return PendingIntent.getBroadcast(context, id, intent, flags)
     }
 
-    fun schedule(context: Context, id: Int, title: String, message: String, triggerAtMillis: Long) {
+    fun schedule(
+        context: Context,
+        id: Int,
+        title: String,
+        message: String,
+        triggerAtMillis: Long,
+        taskId: String? = null,
+        voiceEnabled: Boolean = true,
+    ) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
-        val pi = pendingIntent(context, id, title, message)
+        val pi = pendingIntent(context, id, title, message, taskId, voiceEnabled)
         // Persist so TtsAlarmBootReceiver can re-arm this alarm if the
         // device reboots before it fires (AlarmManager forgets everything
         // on reboot).
-        TtsAlarmStore.put(context, id, title, message, triggerAtMillis)
+        TtsAlarmStore.put(context, id, title, message, triggerAtMillis, taskId, voiceEnabled)
         try {
             val canBeExact = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 alarmManager.canScheduleExactAlarms()
