@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'db/database_helper.dart';
+import 'l10n/app_localizations.dart';
 import 'providers/bill_provider.dart';
 import 'providers/category_provider.dart';
 import 'providers/history_provider.dart';
+import 'providers/locale_provider.dart';
 import 'providers/note_task_provider.dart';
 import 'providers/priority_tag_provider.dart';
 import 'providers/profile_provider.dart';
@@ -109,12 +111,16 @@ class MiniMeApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => HistoryProvider()..load()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()..load()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()..load()),
+        ChangeNotifierProvider(create: (_) => LocaleProvider()..load()),
       ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, _) => MaterialApp(
+      child: Consumer2<ThemeProvider, LocaleProvider>(
+        builder: (context, themeProvider, localeProvider, _) => MaterialApp(
           title: 'MiniMe',
           debugShowCheckedModeBanner: false,
           theme: themeProvider.themeData,
+          locale: localeProvider.locale,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
           home: const _AppRoot(),
         ),
       ),
