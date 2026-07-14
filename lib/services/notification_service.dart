@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -135,16 +136,19 @@ class NotificationService {
     if (Platform.isAndroid) {
       final androidPlugin = _plugin
           .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-      await androidPlugin?.requestNotificationsPermission();
+      final notifGranted = await androidPlugin?.requestNotificationsPermission();
+      debugPrint('MiniMe/notif: requestNotificationsPermission -> $notifGranted');
       try {
         // Android 12+ (API 31+): fara acest permis, alarmele "exacte" sunt
         // degradate silentios la "inexacte" de catre sistem, ceea ce poate
         // intarzia sau chiar sari peste un reminder programat la o ora
         // precisa. Cere permisiunea explicit (deschide ecranul de setari
         // daca nu e deja acordata).
-        await androidPlugin?.requestExactAlarmsPermission();
-      } catch (e) {
+        final exactGranted = await androidPlugin?.requestExactAlarmsPermission();
+        debugPrint('MiniMe/notif: requestExactAlarmsPermission -> $exactGranted');
+      } catch (e, st) {
         // Nu toate versiunile de Android/plugin au aceasta metoda - ignora.
+        debugPrint('MiniMe/notif: requestExactAlarmsPermission threw: $e\n$st');
       }
       await androidPlugin?.createNotificationChannel(const AndroidNotificationChannel(
         _channelId,
@@ -153,6 +157,7 @@ class NotificationService {
         importance: Importance.high,
         playSound: true,
       ));
+      debugPrint('MiniMe/notif: notification channel created ($_channelId)');
     }
 
     _initialized = true;
@@ -219,6 +224,7 @@ class NotificationService {
     // Save a doua oara ajunge sa creeze un task duplicat. De-aia incercam
     // intai exact, si daca esueaza cadem pe inexact, ca notificarea vizuala
     // sa apara oricum (poate cu o mica intarziere), fara sa stricam salvarea.
+    debugPrint('MiniMe/notif: scheduling visual reminder id=$id title="${task.title}" at $scheduled (daily=$daily)');
     try {
       await _plugin.zonedSchedule(
         id,
@@ -231,7 +237,9 @@ class NotificationService {
         matchDateTimeComponents: daily ? DateTimeComponents.time : null,
         payload: task.id,
       );
-    } catch (e) {
+      debugPrint('MiniMe/notif: exact zonedSchedule OK id=$id');
+    } catch (e, st) {
+      debugPrint('MiniMe/notif: exact zonedSchedule FAILED id=$id error=$e\n$st');
       try {
         await _plugin.zonedSchedule(
           id,
@@ -244,9 +252,11 @@ class NotificationService {
           matchDateTimeComponents: daily ? DateTimeComponents.time : null,
           payload: task.id,
         );
-      } catch (e2) {
+        debugPrint('MiniMe/notif: inexact zonedSchedule OK id=$id');
+      } catch (e2, st2) {
         // Best-effort: chiar daca notificarea vizuala nu poate fi
         // programata deloc, alarma vocala nativa de mai jos tot va suna.
+        debugPrint('MiniMe/notif: inexact zonedSchedule ALSO FAILED id=$id error=$e2\n$st2');
       }
     }
 
