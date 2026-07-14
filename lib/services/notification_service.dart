@@ -112,6 +112,9 @@ String composeSpokenMessage(NoteTask task, String name) {
 /// voce tare titlul task-ului, folosind motorul TextToSpeech al
 /// telefonului direct din Kotlin - functioneaza chiar daca aplicatia a
 /// fost inchisa complet, fara sa fie nevoie de niciun buton "asculta".
+/// Alarma nativa e cea care afiseaza si banner-ul cu butoane Done/Snooze/
+/// Not Today pe telefoanele unde alarma programata de flutter_local_
+/// notifications nu se declanseaza deloc (vezi TtsAlarmReceiver.kt).
 class NotificationService {
   NotificationService._();
   static final NotificationService instance = NotificationService._();
@@ -271,6 +274,8 @@ class NotificationService {
       title: task.title,
       message: message,
       when: scheduled,
+      taskId: task.id,
+      voiceEnabled: task.voiceNotificationEnabled,
     );
   }
 
